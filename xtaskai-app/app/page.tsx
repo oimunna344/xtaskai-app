@@ -55,7 +55,7 @@ export default function Home() {
 
         <button
           onClick={() => {
-            // Redirect to PHP app
+            // Correct redirect – Dashboard (PHP)
             window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}&ref=${referralCode}`;
           }}
           className="w-full bg-gradient-to-r from-green-600 to-blue-500 text-white font-semibold py-3 rounded-xl hover:opacity-90 transition"
