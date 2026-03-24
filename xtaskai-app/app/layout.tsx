@@ -8,6 +8,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "XTaskAI - Earn USDC on Base",
   description: "Complete tasks and earn USDC on Base network",
+  icons: {
+    icon: "/favicon.ico",        // ← public/favicon.ico
+    apple: "/logo.png",          // ← iOS এর জন্য
+  },
+  other: {
+    "base:app_id": "69c0256cfa9c0ad39d2bcd03",
+  },
 };
 
 export default function RootLayout({
