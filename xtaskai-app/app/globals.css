@@ -2,7 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Background - Like Screenshot */
 body {
-  background: linear-gradient(135deg, #0a0f1e, #1a1f2e);
+  background: linear-gradient(135deg, #0a0f1e 0%, #1a1f2e 100%);
   min-height: 100vh;
+}
+
+/* Glass morphism effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
