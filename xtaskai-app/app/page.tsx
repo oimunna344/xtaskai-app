@@ -47,46 +47,45 @@ export default function Home() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0a0f1e, #1a1f2e)" }}>
-        <div className="text-center w-[260px] mx-auto px-2">
-          {/* Logo */}
-          <div className="mb-3">
-            <img src="/logo.png" alt="XTaskAI" className="w-12 h-12 mx-auto mb-1 rounded-lg" />
-            <h1 className="text-lg font-bold text-white">XTASKAI</h1>
-            <p className="text-gray-400 text-[9px] mt-0.5">Complete Tasks • Earn USDC • Base Chain</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+        <div className="text-center w-[280px] mx-auto px-3">
+          {/* No Logo */}
+          <div className="mb-5">
+            <h1 className="text-2xl font-bold text-white">XTASKAI</h1>
+            <p className="text-white/70 text-xs mt-1">Complete Tasks • Earn USDC • Base Chain</p>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-1.5 mb-4">
-            <div className="bg-white/5 rounded-md py-1.5 text-center border border-white/10">
-              <div className="text-sm font-bold text-green-400">{loading ? "..." : stats.tasks}</div>
-              <div className="text-[8px] text-gray-500">TASKS</div>
+          {/* Stats Cards - Smart Colors */}
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl py-2.5 text-center shadow-lg">
+              <div className="text-xl font-bold text-white">{loading ? "..." : stats.tasks}</div>
+              <div className="text-[10px] text-white/80">TASKS</div>
             </div>
-            <div className="bg-white/5 rounded-md py-1.5 text-center border border-white/10">
-              <div className="text-sm font-bold text-blue-400">{loading ? "..." : `$${stats.earned}`}</div>
-              <div className="text-[8px] text-gray-500">EARNED</div>
+            <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl py-2.5 text-center shadow-lg">
+              <div className="text-xl font-bold text-white">{loading ? "..." : `$${stats.earned}`}</div>
+              <div className="text-[10px] text-white/80">EARNED</div>
             </div>
-            <div className="bg-white/5 rounded-md py-1.5 text-center border border-white/10">
-              <div className="text-sm font-bold text-orange-400">{loading ? "..." : stats.users}</div>
-              <div className="text-[8px] text-gray-500">USERS</div>
+            <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl py-2.5 text-center shadow-lg">
+              <div className="text-xl font-bold text-white">{loading ? "..." : stats.users}</div>
+              <div className="text-[10px] text-white/80">USERS</div>
             </div>
           </div>
 
           {/* Loading Bar */}
-          <div className="mb-3">
-            <div className="w-full bg-white/10 rounded-full h-0.5 overflow-hidden">
+          <div className="mb-5">
+            <div className="w-full bg-white/30 rounded-full h-1.5 overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-100"
+                className="h-full bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full transition-all duration-100"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
-            <p className="text-gray-500 text-[8px] mt-1">INITIALIZING {progress}%</p>
+            <p className="text-white/60 text-[10px] mt-1">INITIALIZING {progress}%</p>
           </div>
 
           {/* Connect Wallet Button */}
           <button
             onClick={() => connect({ connector: connectors[0] })}
-            className="w-full bg-gradient-to-r from-blue-500 to-green-500 text-white font-semibold py-1.5 rounded-md text-xs hover:opacity-90 transition"
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:opacity-90 transition shadow-lg"
           >
             🔌 Connect Wallet
           </button>
@@ -96,10 +95,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0a0f1e, #1a1f2e)" }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
       <div className="text-center">
-        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-500 mx-auto mb-1"></div>
-        <p className="text-gray-400 text-[9px]">Redirecting...</p>
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto mb-2"></div>
+        <p className="text-white/70 text-xs">Redirecting...</p>
       </div>
     </div>
   );
