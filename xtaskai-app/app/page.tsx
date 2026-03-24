@@ -47,50 +47,48 @@ export default function Home() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center w-full max-w-md mx-auto px-4">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0a0f1e, #1a1f2e)" }}>
+        <div className="text-center w-full max-w-sm mx-auto px-4">
           {/* Logo */}
-          <div className="mb-8">
-            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-3xl font-bold text-white">X</span>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800">XTASKAI</h1>
-            <p className="text-gray-600 text-sm mt-2">Complete Tasks • Earn USDC • Base Chain</p>
+          <div className="mb-6">
+            <img src="/logo.png" alt="XTaskAI" className="w-16 h-16 mx-auto mb-3 rounded-xl" />
+            <h1 className="text-2xl font-bold text-white">XTASKAI</h1>
+            <p className="text-gray-400 text-xs mt-1">Complete Tasks • Earn USDC • Base Chain</p>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-3 mb-8">
-            <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-3 text-center shadow-lg">
-              <div className="text-2xl font-bold text-white">{loading ? "..." : stats.tasks}</div>
-              <div className="text-[10px] text-white/80 mt-1">TASKS</div>
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
+              <div className="text-lg font-bold text-green-400">{loading ? "..." : stats.tasks}</div>
+              <div className="text-[9px] text-gray-500">TASKS</div>
             </div>
-            <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl p-3 text-center shadow-lg">
-              <div className="text-2xl font-bold text-white">{loading ? "..." : `$${stats.earned}`}</div>
-              <div className="text-[10px] text-white/80 mt-1">EARNED</div>
+            <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
+              <div className="text-lg font-bold text-blue-400">{loading ? "..." : `$${stats.earned}`}</div>
+              <div className="text-[9px] text-gray-500">EARNED</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl p-3 text-center shadow-lg">
-              <div className="text-2xl font-bold text-white">{loading ? "..." : stats.users}</div>
-              <div className="text-[10px] text-white/80 mt-1">USERS</div>
+            <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
+              <div className="text-lg font-bold text-orange-400">{loading ? "..." : stats.users}</div>
+              <div className="text-[9px] text-gray-500">USERS</div>
             </div>
           </div>
 
           {/* Loading Bar */}
-          <div className="mb-6">
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div className="mb-5">
+            <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-100"
+                className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-100"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
-            <p className="text-gray-500 text-xs mt-2">INITIALIZING {progress}%</p>
+            <p className="text-gray-500 text-[10px] mt-1">INITIALIZING {progress}%</p>
           </div>
 
-          {/* Enter Button */}
+          {/* Connect Wallet Button */}
           <button
             onClick={() => connect({ connector: connectors[0] })}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 rounded-xl hover:opacity-90 transition shadow-lg"
+            className="w-full bg-gradient-to-r from-blue-600 to-green-500 text-white font-semibold py-2.5 rounded-lg text-sm hover:opacity-90 transition"
           >
-            ENTER PLATFORM
+            🔌 Connect Wallet
           </button>
         </div>
       </div>
@@ -98,10 +96,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0a0f1e, #1a1f2e)" }}>
       <div className="text-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto mb-3"></div>
-        <p className="text-gray-600 text-sm">Redirecting to dashboard...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
+        <p className="text-gray-400 text-xs">Redirecting...</p>
       </div>
     </div>
   );
