@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
-import { depositUSDC } from "../lib/contract";  // 🆕 import
+import { depositUSDC } from "../lib/contract";
 
 export default function DepositPage() {
   const { address, isConnected } = useAccount();
@@ -16,11 +16,10 @@ export default function DepositPage() {
   const [error, setError] = useState("");
   const [balance, setBalance] = useState(0);
 
-  // Get user's USDC balance
+  // Get wallet USDC balance
   useEffect(() => {
     const getBalance = async () => {
       if (!isConnected || !address) return;
-      
       try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const usdcContract = new ethers.Contract(
@@ -61,13 +60,10 @@ export default function DepositPage() {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       
-      // 🆕 Use imported depositUSDC
       const result = await depositUSDC(amount, signer);
       
       if (result.success) {
         alert(`✅ Deposit successful!\nAmount: ${amount} USDC\nTx: ${result.txHash.slice(0, 10)}...`);
-        
-        // Redirect to PHP dashboard
         window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}&deposit_success=1`;
       } else {
         setError(result.error || "Deposit failed");
@@ -106,7 +102,6 @@ export default function DepositPage() {
           <p className="text-white/70 text-sm mt-1">Base Network</p>
         </div>
 
-        {/* Wallet Info */}
         <div className="bg-black/30 rounded-xl p-3 mb-4">
           <div className="text-xs text-white/50 mb-1">Connected Wallet</div>
           <div className="text-white font-mono text-sm">{address?.slice(0, 8)}...{address?.slice(-6)}</div>
@@ -116,7 +111,6 @@ export default function DepositPage() {
           </div>
         </div>
 
-        {/* Amount Input */}
         <div className="mb-5">
           <label className="block text-white/70 text-sm mb-2">Amount (USDC)</label>
           <input
@@ -140,7 +134,6 @@ export default function DepositPage() {
           </div>
         </div>
 
-        {/* Info Box */}
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 mb-5">
           <div className="text-blue-400 text-xs font-semibold mb-1">💡 Info</div>
           <div className="text-white/60 text-xs">
@@ -150,33 +143,20 @@ export default function DepositPage() {
           </div>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="bg-red-500/20 border border-red-500 rounded-xl p-3 mb-4">
             <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
 
-        {/* Deposit Button */}
         <button
           onClick={handleDeposit}
           disabled={loading}
           className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50"
         >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing...
-            </span>
-          ) : (
-            "💎 Deposit USDC"
-          )}
+          {loading ? "Processing..." : "💎 Deposit USDC"}
         </button>
 
-        {/* Back Link */}
         <button
           onClick={() => {
             window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}`;
