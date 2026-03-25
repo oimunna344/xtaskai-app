@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useWriteContract, useReadContract } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { parseUnits } from "viem";
 
 // Contract Addresses
