@@ -3,8 +3,15 @@
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
-import { ethers } from "ethers";  // ethers v5
+import { ethers } from "ethers";
 import { depositUSDC } from "../lib/contract";
+
+// 🆕 window.ethereum টাইপ ডিক্লেয়ার
+declare global {
+  interface Window {
+    ethereum: any;
+  }
+}
 
 export default function DepositPage() {
   const { address, isConnected } = useAccount();
