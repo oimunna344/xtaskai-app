@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
 import { ethers } from "ethers";
-import { depositUSDC } from "../lib/contract";
+import { depositUSDC, getUserUSDCBalance } from "../lib/contract";
 
-// 🆕 window.ethereum টাইপ ডিক্লেয়ার
 declare global {
   interface Window {
     ethereum: any;
@@ -23,22 +22,26 @@ export default function DepositPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [balance, setBalance] = useState(0);
+  const [checkingBalance, setCheckingBalance] = useState(true);
 
-  // Get wallet USDC balance
+  // Get wallet USDC balance - FIXED
   useEffect(() => {
     const getBalance = async () => {
-      if (!isConnected || !address) return;
+      if (!isConnected || !address) {
+        setCheckingBalance(false);
+        return;
+      }
+      
+      setCheckingBalance(true);
       try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const usdcContract = new ethers.Contract(
-          "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-          ["function balanceOf(address) view returns (uint256)"],
-          provider
-        );
-        const bal = await usdcContract.balanceOf(address);
-        setBalance(parseFloat(ethers.utils.formatUnits(bal, 6)));
+        const balanceStr = await getUserUSDCBalance(address, provider);
+        setBalance(parseFloat(balanceStr));
       } catch (e) {
         console.log("Balance fetch failed", e);
+        setBalance(0);
+      } finally {
+        setCheckingBalance(false);
       }
     };
     getBalance();
@@ -116,7 +119,9 @@ export default function DepositPage() {
           <div className="text-white font-mono text-sm">{address?.slice(0, 8)}...{address?.slice(-6)}</div>
           <div className="flex justify-between mt-2 text-sm">
             <span className="text-white/50">USDC Balance:</span>
-            <span className="text-green-400 font-bold">{balance.toFixed(4)} USDC</span>
+            <span className="text-green-400 font-bold">
+              {checkingBalance ? "Loading..." : `${balance.toFixed(4)} USDC`}
+            </span>
           </div>
         </div>
 
@@ -160,10 +165,10 @@ export default function DepositPage() {
 
         <button
           onClick={handleDeposit}
-          disabled={loading}
+          disabled={loading || checkingBalance}
           className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50"
         >
-          {loading ? "Processing..." : "💎 Deposit USDC"}
+          {loading ? "Processing..." : checkingBalance ? "Loading balance..." : "💎 Deposit USDC"}
         </button>
 
         <button
