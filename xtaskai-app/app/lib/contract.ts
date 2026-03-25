@@ -244,7 +244,7 @@ const USDC_ABI = [
 ];
 
 // ============================================
-// ইউজারের USDC ব্যালেন্স দেখার ফাংশন
+// 🆕 ইউজারের USDC ব্যালেন্স দেখার ফাংশন (EXPORTED)
 // ============================================
 export async function getUserUSDCBalance(address: string, provider: ethers.providers.Provider) {
   try {
@@ -271,17 +271,30 @@ export async function depositUSDC(amount: string, signer: ethers.Signer) {
     
     // Check USDC balance
     const balance = await usdc.balanceOf(userAddress);
+    console.log("User balance:", ethers.utils.formatUnits(balance, 6), "USDC");
+    console.log("Amount to deposit:", amount, "USDC");
+    
     if (balance.lt(amountInWei)) {
       throw new Error(`Insufficient USDC. You have ${ethers.utils.formatUnits(balance, 6)} USDC`);
     }
     
-    // Approve
-    const approveTx = await usdc.approve(CONTRACT_ADDRESS, amountInWei);
-    await approveTx.wait();
+    // Check allowance
+    const allowance = await usdc.allowance(userAddress, CONTRACT_ADDRESS);
+    console.log("Current allowance:", ethers.utils.formatUnits(allowance, 6), "USDC");
     
-    // Deposit with Builder Code
+    // Approve if needed
+    if (allowance.lt(amountInWei)) {
+      console.log("Approving USDC...");
+      const approveTx = await usdc.approve(CONTRACT_ADDRESS, amountInWei);
+      await approveTx.wait();
+      console.log("Approved!");
+    }
+    
+    // Deposit
+    console.log("Depositing to contract...");
     const depositTx = await contract.deposit(amountInWei);
     await depositTx.wait();
+    console.log("Deposited!");
     
     return {
       success: true,

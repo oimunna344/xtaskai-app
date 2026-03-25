@@ -24,7 +24,7 @@ export default function DepositPage() {
   const [balance, setBalance] = useState(0);
   const [checkingBalance, setCheckingBalance] = useState(true);
 
-  // Get wallet USDC balance - FIXED
+  // Get wallet USDC balance
   useEffect(() => {
     const getBalance = async () => {
       if (!isConnected || !address) {
@@ -36,6 +36,7 @@ export default function DepositPage() {
       try {
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const balanceStr = await getUserUSDCBalance(address, provider);
+        console.log("Fetched balance:", balanceStr, "USDC");
         setBalance(parseFloat(balanceStr));
       } catch (e) {
         console.log("Balance fetch failed", e);
@@ -71,7 +72,9 @@ export default function DepositPage() {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       
+      console.log("Starting deposit...");
       const result = await depositUSDC(amount, signer);
+      console.log("Deposit result:", result);
       
       if (result.success) {
         alert(`✅ Deposit successful!\nAmount: ${amount} USDC\nTx: ${result.txHash.slice(0, 10)}...`);
@@ -80,7 +83,7 @@ export default function DepositPage() {
         setError(result.error || "Deposit failed");
       }
     } catch (err: any) {
-      console.error(err);
+      console.error("Deposit error:", err);
       setError(err.message || "Transaction failed");
     } finally {
       setLoading(false);
