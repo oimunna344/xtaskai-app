@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
+import { ethers } from "ethers";  // 🆕 যোগ করো
 import { depositUSDC } from "../lib/contract";
 
 export default function DepositPage() {
@@ -30,7 +31,7 @@ export default function DepositPage() {
         const bal = await usdcContract.balanceOf(address);
         setBalance(parseFloat(ethers.utils.formatUnits(bal, 6)));
       } catch (e) {
-        console.log("Balance fetch failed");
+        console.log("Balance fetch failed", e);
       }
     };
     getBalance();
@@ -69,6 +70,7 @@ export default function DepositPage() {
         setError(result.error || "Deposit failed");
       }
     } catch (err: any) {
+      console.error(err);
       setError(err.message || "Transaction failed");
     } finally {
       setLoading(false);
