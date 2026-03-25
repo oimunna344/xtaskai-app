@@ -59,11 +59,9 @@ export default function DepositPage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
 
-  // Wagmi hooks
   const { writeContract: writeApprove, isPending: isApprovePending } = useWriteContract();
   const { writeContract: writeDeposit, isPending: isDepositPending } = useWriteContract();
 
-  // Get USDC balance
   const { data: usdcBalance, refetch: refetchBalance } = useReadContract({
     address: USDC_ADDRESS,
     abi: USDC_ABI,
@@ -72,7 +70,6 @@ export default function DepositPage() {
     query: { enabled: !!address },
   });
 
-  // Get allowance
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: USDC_ADDRESS,
     abi: USDC_ABI,
@@ -81,14 +78,12 @@ export default function DepositPage() {
     query: { enabled: !!address },
   });
 
-  // Update balance
   useEffect(() => {
     if (usdcBalance !== undefined) {
       setBalance(Number(usdcBalance) / 1e6);
     }
   }, [usdcBalance]);
 
-  // Check if approval needed
   useEffect(() => {
     if (amount && allowance !== undefined) {
       const amountInWei = parseUnits(amount, 6);
@@ -96,7 +91,6 @@ export default function DepositPage() {
     }
   }, [amount, allowance]);
 
-  // Handle Approve
   const handleApprove = () => {
     if (!amount) return;
     const amountInWei = parseUnits(amount, 6);
@@ -116,7 +110,6 @@ export default function DepositPage() {
     });
   };
 
-  // Handle Deposit
   const handleDeposit = () => {
     if (!isConnected || !address) {
       setError("Connect wallet first");
