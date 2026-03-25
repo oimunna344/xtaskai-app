@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useRouter } from "next/navigation";
-import { ethers } from "ethers";  // 🆕 যোগ করো
+import { ethers } from "ethers";  // ethers v5
 import { depositUSDC } from "../lib/contract";
 
 export default function DepositPage() {
