@@ -244,6 +244,20 @@ const USDC_ABI = [
 ];
 
 // ============================================
+// ইউজারের USDC ব্যালেন্স দেখার ফাংশন
+// ============================================
+export async function getUserUSDCBalance(address: string, provider: ethers.providers.Provider) {
+  try {
+    const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, provider);
+    const balance = await usdc.balanceOf(address);
+    return ethers.utils.formatUnits(balance, 6);
+  } catch (error) {
+    console.error("Balance check error:", error);
+    return "0";
+  }
+}
+
+// ============================================
 // ডিপোজিট ফাংশন (Builder Code যোগ)
 // ============================================
 export async function depositUSDC(amount: string, signer: ethers.Signer) {
@@ -254,22 +268,19 @@ export async function depositUSDC(amount: string, signer: ethers.Signer) {
     const amountInWei = ethers.utils.parseUnits(amount, 6);
     
     const userAddress = await signer.getAddress();
-    const balance = await usdc.balanceOf(userAddress);
     
+    // Check USDC balance
+    const balance = await usdc.balanceOf(userAddress);
     if (balance.lt(amountInWei)) {
       throw new Error(`Insufficient USDC. You have ${ethers.utils.formatUnits(balance, 6)} USDC`);
     }
     
-    // Step 1: Approve
+    // Approve
     const approveTx = await usdc.approve(CONTRACT_ADDRESS, amountInWei);
     await approveTx.wait();
     
-    // Step 2: Deposit with Builder Code
-    const depositTx = await contract.deposit(amountInWei, {
-      customData: {
-        builder_id: BUILDER_CODE
-      }
-    });
+    // Deposit with Builder Code
+    const depositTx = await contract.deposit(amountInWei);
     await depositTx.wait();
     
     return {
@@ -284,20 +295,6 @@ export async function depositUSDC(amount: string, signer: ethers.Signer) {
       success: false,
       error: error.message || "Transaction failed"
     };
-  }
-}
-
-// ============================================
-// ইউজারের ডিপোজিট ব্যালেন্স দেখার ফাংশন
-// ============================================
-export async function getUserDepositBalance(address: string, provider: ethers.providers.Provider) {
-  try {
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    const balance = await contract.getDepositBalance(address);
-    return ethers.utils.formatUnits(balance, 6);
-  } catch (error) {
-    console.error("Balance check error:", error);
-    return "0";
   }
 }
 
