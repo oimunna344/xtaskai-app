@@ -1,0 +1,7 @@
+{
+  "name": "XTaskAI",
+  "description": "Complete tasks and earn USDC on Base network",
+  "iconPath": "/favicon.ico",
+  "baseAppId": "69c0256cfa9c0ad39d2bcd03",
+  "url": "https://xtaskai-app.vercel.app"
+}
