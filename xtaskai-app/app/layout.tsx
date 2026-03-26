@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   other: {
     "base:app_id": "69c0256cfa9c0ad39d2bcd03",
   },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
