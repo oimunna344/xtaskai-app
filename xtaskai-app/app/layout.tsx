@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     siteName: "XTaskAI",
     images: [
       {
-        url: "https://xtaskai-app.vercel.app/og-image.jpg",
+        url: "https://xtaskai-app.vercel.app/og-image.png",
         width: 1200,
         height: 630,
         alt: "XTaskAI - Earn USDC on Base",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "XTaskAI - Earn USDC on Base",
     description: "Complete microtasks, join tournaments, play PvP games & earn USDC",
-    images: ["https://xtaskai-app.vercel.app/og-image.jpg"],
+    images: ["https://xtaskai-app.vercel.app/og-image.png"],
   },
   other: {
     "base:app_id": "69c0256cfa9c0ad39d2bcd03",
