@@ -36,26 +36,29 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto redirect
-  useEffect(() => {
-    if (isConnected && address) {
+  // Go to Dashboard
+  const goToDashboard = () => {
+    if (address) {
       const urlParams = new URLSearchParams(window.location.search);
       const ref = urlParams.get('ref') || '';
       window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}&ref=${ref}`;
     }
-  }, [isConnected, address]);
+  };
 
   if (!isConnected) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
         <div className="text-center w-[280px] mx-auto px-3">
-          {/* No Logo */}
+          {/* Logo */}
           <div className="mb-5">
+            <div className="w-16 h-16 bg-white/20 rounded-2xl mx-auto mb-3 flex items-center justify-center backdrop-blur-sm">
+              <span className="text-3xl font-bold text-white">X</span>
+            </div>
             <h1 className="text-2xl font-bold text-white">XTASKAI</h1>
             <p className="text-white/70 text-xs mt-1">Complete Tasks • Earn USDC • Base Chain</p>
           </div>
 
-          {/* Stats Cards - Smart Colors */}
+          {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-2 mb-6">
             <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl py-2.5 text-center shadow-lg">
               <div className="text-xl font-bold text-white">{loading ? "..." : stats.tasks}</div>
@@ -94,11 +97,38 @@ export default function Home() {
     );
   }
 
+  // Connected state - Show Dashboard Button (No Auto Redirect)
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto mb-2"></div>
-        <p className="text-white/70 text-xs">Redirecting...</p>
+      <div className="text-center w-[320px] mx-auto px-4">
+        {/* Success Icon */}
+        <div className="w-20 h-20 bg-green-500/20 rounded-full mx-auto mb-6 flex items-center justify-center">
+          <svg className="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        
+        {/* Wallet Address */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 mb-6">
+          <p className="text-white/60 text-xs mb-1">Connected Wallet</p>
+          <p className="text-white font-mono text-sm">{address?.slice(0, 8)}...{address?.slice(-6)}</p>
+        </div>
+        
+        {/* Go to Dashboard Button */}
+        <button
+          onClick={goToDashboard}
+          className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold py-3 rounded-xl text-base hover:opacity-90 transition shadow-lg mb-3"
+        >
+          🚀 Go to Dashboard
+        </button>
+        
+        {/* Disconnect Button */}
+        <button
+          onClick={() => disconnect()}
+          className="w-full bg-white/10 text-white/70 font-semibold py-2 rounded-xl text-sm hover:bg-white/20 transition"
+        >
+          Disconnect Wallet
+        </button>
       </div>
     </div>
   );
