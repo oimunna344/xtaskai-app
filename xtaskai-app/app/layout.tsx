@@ -6,19 +6,26 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  // ✅ VERY IMPORTANT (OG fix)
+  metadataBase: new URL("https://xtaskai-app.vercel.app"),
+
   title: "XTaskAI - Earn USDC on Base",
-  description: "Complete microtasks, join tournaments, play PvP games & earn USDC on Base network",
+  description:
+    "Complete microtasks, join tournaments, play PvP games & earn USDC on Base network",
+
   icons: {
     icon: "/favicon.ico",
   },
+
   openGraph: {
     title: "XTaskAI - Earn USDC on Base",
-    description: "Complete microtasks, join tournaments, play PvP games & earn USDC",
-    url: "https://xtaskai-app.vercel.app",
+    description:
+      "Complete microtasks, join tournaments, play PvP games & earn USDC",
+    url: "/",
     siteName: "XTaskAI",
     images: [
       {
-        url: "https://xtaskai-app.vercel.app/og-image.png",
+        url: "/og.png", // ✅ তোমার new OG image
         width: 1200,
         height: 630,
         alt: "XTaskAI - Earn USDC on Base",
@@ -26,29 +33,30 @@ export const metadata: Metadata = {
     ],
     type: "website",
   },
+
   twitter: {
     card: "summary_large_image",
     title: "XTaskAI - Earn USDC on Base",
-    description: "Complete microtasks, join tournaments, play PvP games & earn USDC",
-    images: ["https://xtaskai-app.vercel.app/og-image.png"],
+    description:
+      "Complete microtasks, join tournaments, play PvP games & earn USDC",
+    images: ["/og.png"], // ✅ same image
   },
+
+  // ✅ Base App প্রয়োজন
   other: {
     "base:app_id": "69c0256cfa9c0ad39d2bcd03",
   },
+
   manifest: "/manifest.json",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <head>
-        <meta name="base:app_id" content="69c0256cfa9c0ad39d2bcd03" />
-        <link rel="manifest" href="/manifest.json" />
-      </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
