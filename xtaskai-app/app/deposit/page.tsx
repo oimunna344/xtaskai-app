@@ -136,7 +136,22 @@ export default function DepositPage() {
       functionName: "deposit",
       args: [amountInWei],
     }, {
-      onSuccess: (hash) => {
+      onSuccess: async (hash) => {
+        // API কল করে PHP ব্যালেন্স আপডেট করুন
+        try {
+          await fetch('https://xtaskai.com/base-mini-app/api/update_balance.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wallet: address,
+              amount: parseFloat(amount),
+              tx_hash: hash
+            })
+          });
+        } catch (apiError) {
+          console.log('API error but deposit successful:', apiError);
+        }
+        
         alert(`✅ Deposit successful! ${amount} USDC added`);
         refetchBalance();
         window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}&tx=${hash}`;
