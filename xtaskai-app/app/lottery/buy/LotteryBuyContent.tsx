@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useConnect } from "wagmi";
 import { parseUnits } from "viem";
 import { useSearchParams } from "next/navigation";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
 const BUILDER_CODE = "bc_08dcvsfy";
-
 const USDC_ABI = [
   {
     type: "function",
@@ -45,6 +44,7 @@ const CONTRACT_ABI = [
 export default function LotteryBuyContent() {
   const searchParams = useSearchParams();
   const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
   const { writeContractAsync, data: hash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
   
@@ -69,6 +69,13 @@ export default function LotteryBuyContent() {
       setNeedsApproval(allowance < amountInWei);
     }
   }, [allowance, amountInWei]);
+
+  const handleConnect = () => {
+    const injectedConnector = connectors.find(c => c.id === 'injected');
+    if (injectedConnector) {
+      connect({ connector: injectedConnector });
+    }
+  };
 
   const handleApprove = async () => {
     setStatus("approving");
@@ -101,7 +108,6 @@ export default function LotteryBuyContent() {
     setErrorMsg("");
 
     try {
-      // Wagmi v2 সঠিক সিনট্যাক্স (customData সরিয়ে দিলাম)
       await writeContractAsync({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
@@ -151,13 +157,20 @@ export default function LotteryBuyContent() {
     }
   }, [isConfirmed, hash]);
 
+  // Not connected state
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center">
+        <div className="text-center max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
           <div className="text-5xl mb-4">🎰</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Connect Wallet</h2>
           <p className="text-gray-500 mb-6">Connect your wallet to buy lottery ticket</p>
+          <button
+            onClick={handleConnect}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition"
+          >
+            Connect Wallet
+          </button>
         </div>
       </div>
     );
@@ -166,7 +179,7 @@ export default function LotteryBuyContent() {
   if (status === "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center">
+        <div className="text-center max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
           <div className="text-6xl mb-4">✅</div>
           <h2 className="text-2xl font-bold text-green-600 mb-2">Ticket Purchased!</h2>
           <p className="text-gray-600">You have successfully joined the lottery.</p>
