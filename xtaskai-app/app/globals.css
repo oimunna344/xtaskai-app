@@ -2,15 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Background - Like Screenshot */
+/* Light Theme - Default */
 body {
-  background: linear-gradient(135deg, #0a0f1e 0%, #1a1f2e 100%);
+  background: #f9fafb;
   min-height: 100vh;
+  color: #111827;
 }
 
-/* Glass morphism effect */
+/* Glass morphism effect (for dark mode, optional) */
 .glass-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* For any dark mode toggle later */
+.dark body {
+  background: linear-gradient(135deg, #0a0f1e 0%, #1a1f2e 100%);
+  color: #ffffff;
+}
+
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
