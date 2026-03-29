@@ -138,13 +138,13 @@ export default function AdminWithdrawPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               📋 Admin Withdraw Panel
             </h1>
             <p className="text-gray-500 mt-1">
@@ -154,7 +154,7 @@ export default function AdminWithdrawPage() {
               <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-mono">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </div>
-              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+              <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
                 👑 Admin
               </span>
             </div>
@@ -162,7 +162,7 @@ export default function AdminWithdrawPage() {
           
           <button
             onClick={fetchRequests}
-            className="mt-4 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition shadow-sm"
+            className="mt-4 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition shadow-sm"
           >
             🔄 Refresh
           </button>
@@ -170,7 +170,7 @@ export default function AdminWithdrawPage() {
 
         {/* Message Toast */}
         {message && (
-          <div className={`mb-6 p-4 rounded-xl border-l-4 ${
+          <div className={`mb-6 p-4 rounded-lg border-l-4 ${
             message.type === "success" 
               ? "bg-green-50 border-green-500 text-green-800" 
               : "bg-red-50 border-red-500 text-red-800"
@@ -187,8 +187,8 @@ export default function AdminWithdrawPage() {
         </div>
 
         {/* Withdrawals Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-200 bg-gray-50/40">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h2 className="text-lg font-semibold text-gray-900">
               💰 Pending Withdrawals
             </h2>
@@ -208,11 +208,11 @@ export default function AdminWithdrawPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">👤 User</th>
-                    <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">🔗 Wallet Address</th>
-                    <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">💰 Amount (USDC)</th>
-                    <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">📌 Status</th>
-                    <th className="text-right px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">⚡ Actions</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">👤 User</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">🔗 Wallet Address</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">💰 Amount</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">📌 Status</th>
+                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">⚡ Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -240,7 +240,7 @@ export default function AdminWithdrawPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
                           ⏳ Pending
                         </span>
                       </td>
@@ -283,14 +283,14 @@ export default function AdminWithdrawPage() {
 
 function ConnectWalletPrompt() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">
           🔌
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Connect Wallet</h2>
         <p className="text-gray-500 mb-6">Please connect your admin wallet to continue</p>
-        <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium shadow-sm hover:shadow-md transition">
+        <button className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium shadow-sm hover:shadow-md transition">
           Connect Wallet
         </button>
       </div>
@@ -300,7 +300,7 @@ function ConnectWalletPrompt() {
 
 function UnauthorizedAccess({ address }: { address?: string }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">
           ⛔
