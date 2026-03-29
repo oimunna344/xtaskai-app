@@ -70,10 +70,20 @@ export default function LotteryBuyContent() {
     }
   }, [allowance, amountInWei]);
 
-  const handleConnect = () => {
-    const injectedConnector = connectors.find(c => c.id === 'injected');
-    if (injectedConnector) {
-      connect({ connector: injectedConnector });
+  // Auto connect on page load (mobile)
+  useEffect(() => {
+    if (!isConnected && connectors.length > 0) {
+      const connector = connectors.find(c => c.id === 'injected');
+      if (connector) {
+        connect({ connector });
+      }
+    }
+  }, [connectors, connect, isConnected]);
+
+  const handleManualConnect = () => {
+    const connector = connectors.find(c => c.id === 'injected');
+    if (connector) {
+      connect({ connector });
     }
   };
 
@@ -138,7 +148,6 @@ export default function LotteryBuyContent() {
       
       if (data.success) {
         setStatus("success");
-        // Redirect back to lottery page after 2 seconds
         setTimeout(() => {
           window.location.href = `https://xtaskai.com/base-mini-app/lottery.php?success=1`;
         }, 2000);
@@ -167,7 +176,7 @@ export default function LotteryBuyContent() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Connect Wallet</h2>
           <p className="text-gray-500 mb-6">Connect your wallet to buy lottery ticket</p>
           <button
-            onClick={handleConnect}
+            onClick={handleManualConnect}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition"
           >
             Connect Wallet
@@ -256,7 +265,7 @@ export default function LotteryBuyContent() {
         )}
 
         <button
-          onClick={() => window.close()}
+          onClick={() => window.location.href = "https://xtaskai.com/base-mini-app/lottery.php"}
           className="w-full mt-3 text-gray-500 text-sm py-2 hover:text-gray-700 transition"
         >
           Cancel
