@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
-const BUILDER_CODE = "bc_08dcvsfy";
+
 const USDC_ABI = [
   {
     type: "function",
@@ -138,8 +138,9 @@ export default function LotteryBuyContent() {
       
       if (data.success) {
         setStatus("success");
+        // Redirect back to lottery page after 2 seconds
         setTimeout(() => {
-          window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*');
+          window.location.href = `https://xtaskai.com/base-mini-app/lottery.php?success=1`;
         }, 2000);
       } else {
         setStatus("error");
@@ -183,7 +184,7 @@ export default function LotteryBuyContent() {
           <div className="text-6xl mb-4">✅</div>
           <h2 className="text-2xl font-bold text-green-600 mb-2">Ticket Purchased!</h2>
           <p className="text-gray-600">You have successfully joined the lottery.</p>
-          <p className="text-gray-400 text-sm mt-4">Closing modal...</p>
+          <p className="text-gray-400 text-sm mt-4">Redirecting back...</p>
         </div>
       </div>
     );
@@ -255,7 +256,7 @@ export default function LotteryBuyContent() {
         )}
 
         <button
-          onClick={() => window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*')}
+          onClick={() => window.close()}
           className="w-full mt-3 text-gray-500 text-sm py-2 hover:text-gray-700 transition"
         >
           Cancel
