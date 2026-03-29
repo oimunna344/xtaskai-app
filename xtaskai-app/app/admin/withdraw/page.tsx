@@ -82,7 +82,7 @@ export default function AdminWithdrawPage() {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "adminWithdraw",
-        args: [request.wallet_address, amountInWei],
+        args: [request.wallet_address as `0x${string}`, amountInWei],
       });
 
       await fetch("https://xtaskai.com/base-mini-app/api/update_withdraw_status.php", {
