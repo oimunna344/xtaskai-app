@@ -1,11 +1,21 @@
+// app/admin/withdraw/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useAccount, useWriteContract } from "wagmi";
 import { parseUnits } from "viem";
-import { adminWithdraw } from "@/app/lib/contract";
+import { 
+  ArrowPathIcon, 
+  CheckCircleIcon, 
+  XCircleIcon, 
+  ClockIcon,
+  WalletIcon,
+  UserIcon,
+  DocumentTextIcon,
+  BanknotesIcon
+} from "@heroicons/react/24/outline";
 
-// Contract ABI (adminWithdraw function)
+const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
 const CONTRACT_ABI = [
   {
     type: "function",
@@ -19,30 +29,40 @@ const CONTRACT_ABI = [
   }
 ] as const;
 
-const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
+interface WithdrawRequest {
+  id: number;
+  user_id: number;
+  username: string;
+  email: string;
+  amount: number;
+  fee: number;
+  net_amount: number;
+  wallet_address: string;
+  status: string;
+  created_at: string;
+}
 
 export default function AdminWithdrawPage() {
   const { address, isConnected } = useAccount();
-  const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState<number | null>(null);
-  const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
-
   const { writeContractAsync } = useWriteContract();
+  
+  const [requests, setRequests] = useState<WithdrawRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Check if connected wallet is admin
   const isAdmin = address?.toLowerCase() === "0x48d8d23f5463f83954558ef5d54c8bee6251ee45".toLowerCase();
 
-  // Fetch pending withdraw requests
   const fetchRequests = async () => {
+    setLoading(true);
     try {
       const res = await fetch("https://xtaskai.com/base-mini-app/api/get_withdraw_requests.php");
       const data = await res.json();
       if (data.success) {
-        setWithdrawRequests(data.requests);
+        setRequests(data.requests);
       }
     } catch (error) {
-      console.error("Failed to fetch requests:", error);
+      console.error("Failed to fetch:", error);
     } finally {
       setLoading(false);
     }
@@ -52,19 +72,17 @@ export default function AdminWithdrawPage() {
     fetchRequests();
   }, []);
 
-  // Handle approve and withdraw
-  const handleApprove = async (request: any) => {
+  const handleApprove = async (request: WithdrawRequest) => {
     if (!isConnected) {
       setMessage({ type: "error", text: "Please connect your admin wallet first!" });
       return;
     }
-
     if (!isAdmin) {
-      setMessage({ type: "error", text: "You are not authorized! Only admin can approve withdrawals." });
+      setMessage({ type: "error", text: "You are not authorized!" });
       return;
     }
 
-    setProcessing(request.id);
+    setProcessingId(request.id);
     setMessage(null);
 
     try {
@@ -77,7 +95,6 @@ export default function AdminWithdrawPage() {
         args: [request.wallet_address, amountInWei],
       });
 
-      // Update status in PHP database
       await fetch("https://xtaskai.com/base-mini-app/api/update_withdraw_status.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -88,144 +105,284 @@ export default function AdminWithdrawPage() {
         })
       });
 
-      setMessage({ type: "success", text: `✅ Withdrawal approved! ${request.net_amount} USDC sent. TX: ${tx.slice(0, 10)}...` });
-      
-      // Refresh list
-      setTimeout(fetchRequests, 2000);
+      setMessage({ type: "success", text: `✅ Approved! ${request.net_amount} USDC sent.` });
+      fetchRequests();
       
     } catch (error: any) {
-      console.error("Withdraw error:", error);
       setMessage({ type: "error", text: error.message || "Transaction failed!" });
     } finally {
-      setProcessing(null);
+      setProcessingId(null);
     }
   };
 
   const handleReject = async (id: number) => {
-    if (!confirm("Reject this withdrawal request?")) return;
+    if (!confirm("Reject this withdrawal?")) return;
     
     try {
-      const res = await fetch("https://xtaskai.com/base-mini-app/api/update_withdraw_status.php", {
+      await fetch("https://xtaskai.com/base-mini-app/api/update_withdraw_status.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: "rejected" })
       });
-      
-      const data = await res.json();
-      if (data.success) {
-        setMessage({ type: "success", text: "Withdrawal rejected!" });
-        fetchRequests();
-      }
+      setMessage({ type: "success", text: "Withdrawal rejected!" });
+      fetchRequests();
     } catch (error) {
       setMessage({ type: "error", text: "Failed to reject!" });
     }
   };
 
+  const stats = {
+    total: requests.length,
+    pending: requests.filter(r => r.status === "pending").length,
+    completed: requests.filter(r => r.status === "approved").length
+  };
+
   if (!isConnected) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-6">Admin Panel</h1>
-          <p className="text-white mb-4">Please connect your admin wallet</p>
-          <button className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold">
-            Connect Wallet
-          </button>
-        </div>
-      </div>
-    );
+    return <ConnectWalletPrompt />;
   }
 
   if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-6">Access Denied</h1>
-          <p className="text-white">This wallet is not authorized as admin.</p>
-          <p className="text-white/70 text-sm mt-4">Connected: {address}</p>
-        </div>
-      </div>
-    );
+    return <UnauthorizedAccess address={address} />;
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
-        <div className="text-white text-xl">Loading withdrawal requests...</div>
-      </div>
-    );
-  }
+  const pendingRequests = requests.filter(r => r.status === "pending");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-500 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-8 mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Withdraw Panel</h1>
-          <p className="text-white/80">Approve or reject withdrawal requests</p>
-          <p className="text-white/60 text-sm mt-2">Admin Wallet: {address}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+              Admin Withdraw Panel
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Manage and approve withdrawal requests
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="badge bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-mono">
+                {address?.slice(0, 6)}...{address?.slice(-4)}
+              </div>
+              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                Admin
+              </span>
+            </div>
+          </div>
+          
+          <button
+            onClick={fetchRequests}
+            className="mt-4 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition shadow-sm hover:shadow"
+          >
+            <ArrowPathIcon className="w-4 h-4" />
+            Refresh
+          </button>
         </div>
 
+        {/* Message Toast */}
         {message && (
-          <div className={`mb-6 p-4 rounded-xl ${
-            message.type === "success" ? "bg-green-500/20 border border-green-500" : "bg-red-500/20 border border-red-500"
+          <div className={`mb-6 p-4 rounded-xl border-l-4 ${
+            message.type === "success" 
+              ? "bg-green-50 border-green-500 text-green-800" 
+              : "bg-red-50 border-red-500 text-red-800"
           }`}>
-            <p className={message.type === "success" ? "text-green-400" : "text-red-400"}>{message.text}</p>
+            <p className="text-sm">{message.text}</p>
           </div>
         )}
 
-        {withdrawRequests.length === 0 ? (
-          <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-12 text-center">
-            <div className="text-6xl mb-4">💰</div>
-            <h2 className="text-2xl text-white mb-2">No Pending Withdrawals</h2>
-            <p className="text-white/70">All withdrawal requests have been processed</p>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <StatCard 
+            title="Total Requests" 
+            value={stats.total} 
+            icon={<DocumentTextIcon className="w-6 h-6" />}
+            color="blue"
+          />
+          <StatCard 
+            title="Pending Requests" 
+            value={stats.pending} 
+            icon={<ClockIcon className="w-6 h-6" />}
+            color="yellow"
+          />
+          <StatCard 
+            title="Completed Requests" 
+            value={stats.completed} 
+            icon={<CheckCircleIcon className="w-6 h-6" />}
+            color="green"
+          />
+        </div>
+
+        {/* Withdrawals Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-200 bg-gray-50/40">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Pending Withdrawals
+            </h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Approve or reject withdrawal requests
+            </p>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {withdrawRequests.map((req) => (
-              <div key={req.id} className="bg-white/20 backdrop-blur-lg rounded-2xl p-6">
-                <div className="flex justify-between items-start flex-wrap gap-4">
-                  <div>
-                    <div className="text-white/70 text-sm mb-1">Request #{req.id}</div>
-                    <div className="text-white font-mono text-sm mb-3">User: {req.wallet_address?.slice(0, 10)}...{req.wallet_address?.slice(-8)}</div>
-                    <div className="flex gap-6">
-                      <div>
-                        <div className="text-white/50 text-xs">Requested</div>
-                        <div className="text-orange-400 font-bold text-xl">${parseFloat(req.amount).toFixed(4)} USDC</div>
-                      </div>
-                      <div>
-                        <div className="text-white/50 text-xs">Fee (5%)</div>
-                        <div className="text-yellow-400">${parseFloat(req.fee).toFixed(4)}</div>
-                      </div>
-                      <div>
-                        <div className="text-white/50 text-xs">Net to Send</div>
-                        <div className="text-green-400 font-bold text-xl">${parseFloat(req.net_amount).toFixed(4)} USDC</div>
-                      </div>
-                    </div>
-                    <div className="text-white/40 text-xs mt-2">
-                      {new Date(req.created_at).toLocaleString()}
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleApprove(req)}
-                      disabled={processing === req.id}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition disabled:opacity-50"
-                    >
-                      {processing === req.id ? "Processing..." : "✅ Approve & Send"}
-                    </button>
-                    <button
-                      onClick={() => handleReject(req.id)}
-                      disabled={processing === req.id}
-                      className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold transition disabled:opacity-50"
-                    >
-                      ❌ Reject
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+            </div>
+          ) : pendingRequests.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet Address</th>
+                    <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (USDC)</th>
+                    <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="text-right px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {pendingRequests.map((request) => (
+                    <tr key={request.id} className="hover:bg-gray-50 transition">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                            <UserIcon className="w-4 h-4 text-gray-500" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">{request.username || "User"}</div>
+                            <div className="text-xs text-gray-400">#{request.id}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1.5">
+                          <WalletIcon className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="font-mono text-sm text-gray-600">
+                            {request.wallet_address?.slice(0, 8)}...{request.wallet_address?.slice(-6)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <span className="font-semibold text-gray-900">
+                            ${request.amount?.toFixed(4)}
+                          </span>
+                          <div className="text-xs text-gray-400">
+                            Fee: ${request.fee?.toFixed(4)} | Net: ${request.net_amount?.toFixed(4)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                          <ClockIcon className="w-3 h-3" />
+                          Pending
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleApprove(request)}
+                            disabled={processingId === request.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition disabled:opacity-50 shadow-sm"
+                          >
+                            {processingId === request.id ? (
+                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <CheckCircleIcon className="w-3.5 h-3.5" />
+                            )}
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReject(request.id)}
+                            disabled={processingId === request.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition disabled:opacity-50 shadow-sm"
+                          >
+                            <XCircleIcon className="w-3.5 h-3.5" />
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========== Subcomponents ==========
+
+function ConnectWalletPrompt() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center px-4">
+      <div className="text-center max-w-md">
+        <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <WalletIcon className="w-8 h-8 text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Connect Wallet</h2>
+        <p className="text-gray-500 mb-6">Please connect your admin wallet to continue</p>
+        <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium shadow-sm hover:shadow-md transition">
+          Connect Wallet
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UnauthorizedAccess({ address }: { address?: string }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 flex items-center justify-center px-4">
+      <div className="text-center max-w-md">
+        <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <XCircleIcon className="w-8 h-8 text-red-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+        <p className="text-gray-500 mb-2">This wallet is not authorized as admin.</p>
+        <p className="text-sm text-gray-400 font-mono">{address}</p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="py-16 text-center">
+      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <span className="text-2xl">🎉</span>
+      </div>
+      <h3 className="text-lg font-medium text-gray-900 mb-1">No Pending Withdrawals</h3>
+      <p className="text-gray-500 text-sm">All withdrawal requests have been processed</p>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon, color }: { 
+  title: string; 
+  value: number; 
+  icon: React.ReactNode;
+  color: 'blue' | 'yellow' | 'green';
+}) {
+  const colorClasses = {
+    blue: 'bg-blue-50 text-blue-600',
+    yellow: 'bg-yellow-50 text-yellow-600',
+    green: 'bg-green-50 text-green-600'
+  };
+  
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-500 font-medium">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+        </div>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorClasses[color]}`}>
+          {icon}
+        </div>
       </div>
     </div>
   );
