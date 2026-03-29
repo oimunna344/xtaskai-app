@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
-// 🆕 Base App Builder Code
+// Base App Builder Code (React app এর জন্য)
 const BUILDER_CODE = "bc_08dcvsfy";
 
 const CONTRACT_ABI = [
@@ -244,7 +244,7 @@ const USDC_ABI = [
 ];
 
 // ============================================
-// 🆕 ইউজারের USDC ব্যালেন্স দেখার ফাংশন (EXPORTED)
+// ইউজারের USDC ব্যালেন্স দেখার ফাংশন
 // ============================================
 export async function getUserUSDCBalance(address: string, provider: ethers.providers.Provider) {
   try {
@@ -290,9 +290,13 @@ export async function depositUSDC(amount: string, signer: ethers.Signer) {
       console.log("Approved!");
     }
     
-    // Deposit
+    // Deposit with Builder Code
     console.log("Depositing to contract...");
-    const depositTx = await contract.deposit(amountInWei);
+    const depositTx = await contract.deposit(amountInWei, {
+      customData: {
+        builder_id: BUILDER_CODE
+      }
+    });
     await depositTx.wait();
     console.log("Deposited!");
     
@@ -322,5 +326,31 @@ export async function getContractUSDCBalance(provider: ethers.providers.Provider
   } catch (error) {
     console.error("Contract balance error:", error);
     return "0";
+  }
+}
+
+// ============================================
+// 🆕 অ্যাডমিন উইথড্র ফাংশন (React app এর জন্য)
+// ============================================
+export async function adminWithdraw(user: string, amount: string, signer: ethers.Signer) {
+  try {
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    const amountInWei = ethers.utils.parseUnits(amount, 6);
+    
+    const tx = await contract.adminWithdraw(user, amountInWei);
+    await tx.wait();
+    
+    return {
+      success: true,
+      txHash: tx.hash,
+      message: `✅ Withdrawal successful! ${amount} USDC sent`
+    };
+    
+  } catch (error: any) {
+    console.error("Withdraw error:", error);
+    return {
+      success: false,
+      error: error.message || "Transaction failed"
+    };
   }
 }
