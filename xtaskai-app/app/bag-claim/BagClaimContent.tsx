@@ -72,9 +72,27 @@ export default function BagClaimContent() {
     }
   }, [allowance, amountInWei]);
 
+  // Auto redirect to MetaMask on mobile
+  useEffect(() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile && !isConnected) {
+      const currentUrl = window.location.href;
+      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
+      window.location.href = metaMaskUrl;
+    }
+  }, [isConnected]);
+
   const handleConnect = () => {
-    const connector = connectors.find(c => c.id === 'injected');
-    if (connector) connect({ connector });
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      const currentUrl = window.location.href;
+      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
+      window.location.href = metaMaskUrl;
+    } else {
+      const connector = connectors.find(c => c.id === 'injected');
+      if (connector) connect({ connector });
+    }
   };
 
   const handleApprove = async () => {
