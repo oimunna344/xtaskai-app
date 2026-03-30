@@ -45,8 +45,14 @@ export default function BagClaimContent() {
   const searchParams = useSearchParams();
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
-  const { writeContractAsync, data: hash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  
+  // Separate write contracts for approve and deposit
+  const { writeContractAsync: approveContract, data: approveHash, isPending: isApprovePending } = useWriteContract();
+  const { writeContractAsync: depositContract, data: depositHash, isPending: isDepositPending } = useWriteContract();
+  
+  // Separate wait for transactions
+  const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
+  const { isLoading: isDepositConfirming, isSuccess: isDepositConfirmed } = useWaitForTransactionReceipt({ hash: depositHash });
   
   const day = searchParams.get("day") || "0";
   const fee = searchParams.get("fee") || "0.01";
@@ -100,15 +106,12 @@ export default function BagClaimContent() {
     setErrorMsg("");
     
     try {
-      await writeContractAsync({
+      await approveContract({
         address: USDC_ADDRESS,
         abi: USDC_ABI,
         functionName: "approve",
         args: [CONTRACT_ADDRESS, amountInWei],
       });
-      
-      setTimeout(() => refetchAllowance(), 3000);
-      setStatus("idle");
       
     } catch (error: any) {
       setStatus("error");
@@ -116,7 +119,7 @@ export default function BagClaimContent() {
     }
   };
 
-  const handleClaim = async () => {
+  const handleDeposit = async () => {
     if (!isConnected) {
       setErrorMsg("Please connect your wallet first!");
       return;
@@ -126,7 +129,7 @@ export default function BagClaimContent() {
     setErrorMsg("");
 
     try {
-      await writeContractAsync({
+      await depositContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "deposit",
@@ -170,11 +173,20 @@ export default function BagClaimContent() {
     }
   };
 
+  // ✅ শুধুমাত্র Deposit Transaction成功后 register করবে
   useEffect(() => {
-    if (isConfirmed && hash) {
-      registerClaim(hash);
+    if (isDepositConfirmed && depositHash) {
+      registerClaim(depositHash);
     }
-  }, [isConfirmed, hash]);
+  }, [isDepositConfirmed, depositHash]);
+
+  // ✅ Approve成功后 allowance refetch করে status update
+  useEffect(() => {
+    if (isApproveConfirmed) {
+      refetchAllowance();
+      setStatus("idle");
+    }
+  }, [isApproveConfirmed, refetchAllowance]);
 
   if (!isConnected) {
     return (
@@ -243,18 +255,25 @@ export default function BagClaimContent() {
         {needsApproval ? (
           <button
             onClick={handleApprove}
-            disabled={isPending || status === "approving"}
+            disabled={isApprovePending || status === "approving" || isApproveConfirming}
             className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50"
           >
-            {status === "approving" ? "Approving..." : "Approve USDC"}
+            {status === "approving" || isApprovePending || isApproveConfirming ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Approving...
+              </span>
+            ) : (
+              "Approve USDC"
+            )}
           </button>
         ) : (
           <button
-            onClick={handleClaim}
-            disabled={isPending || status === "depositing" || isConfirming}
+            onClick={handleDeposit}
+            disabled={isDepositPending || status === "depositing" || isDepositConfirming}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50"
           >
-            {status === "depositing" || isConfirming ? (
+            {status === "depositing" || isDepositPending || isDepositConfirming ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Processing...
