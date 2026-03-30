@@ -56,7 +56,6 @@ export default function JobFeeContent() {
   const JOB_FEE = 0.01;
   const amountInWei = parseUnits(JOB_FEE.toString(), 6);
 
-  // Get job data from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('pending_job');
     if (stored) {
@@ -80,27 +79,9 @@ export default function JobFeeContent() {
     }
   }, [allowance, amountInWei]);
 
-  // Auto redirect to MetaMask on mobile
-  useEffect(() => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile && !isConnected) {
-      const currentUrl = window.location.href;
-      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
-      window.location.href = metaMaskUrl;
-    }
-  }, [isConnected]);
-
   const handleConnect = () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      const currentUrl = window.location.href;
-      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
-      window.location.href = metaMaskUrl;
-    } else {
-      const connector = connectors.find(c => c.id === 'injected');
-      if (connector) connect({ connector });
-    }
+    const connector = connectors.find(c => c.id === 'injected');
+    if (connector) connect({ connector });
   };
 
   const handleApprove = async () => {
@@ -114,7 +95,6 @@ export default function JobFeeContent() {
         functionName: "approve",
         args: [CONTRACT_ADDRESS, amountInWei],
       });
-      
     } catch (error: any) {
       setStatus("error");
       setErrorMsg(error.message || "Approval failed");
@@ -137,7 +117,6 @@ export default function JobFeeContent() {
         functionName: "deposit",
         args: [amountInWei],
       });
-      
     } catch (error: any) {
       setStatus("error");
       setErrorMsg(error.message || "Transaction failed");
@@ -181,14 +160,12 @@ export default function JobFeeContent() {
     }
   };
 
-  // Only deposit transaction成功后 register
   useEffect(() => {
     if (isDepositConfirmed && depositHash) {
       registerJob(depositHash);
     }
   }, [isDepositConfirmed, depositHash]);
 
-  // Approve成功后 allowance refetch
   useEffect(() => {
     if (isApproveConfirmed) {
       refetchAllowance();
@@ -232,7 +209,7 @@ export default function JobFeeContent() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center">
           <div className="text-5xl mb-4">💼</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Post Job</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Pay Job Fee</h1>
           <p className="text-gray-500 mb-6">Pay fee to publish your job</p>
         </div>
 
