@@ -202,6 +202,7 @@ export default function JobFeeContent() {
     }
   }, [isApproveConfirmed, refetchAllowance]);
 
+  // Check if user is not connected
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -217,6 +218,7 @@ export default function JobFeeContent() {
     );
   }
 
+  // Check if transaction is successful
   if (status === "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -230,8 +232,8 @@ export default function JobFeeContent() {
     );
   }
 
-  // Show error if no data (not in success state)
-  if (!jobData && status !== "success") {
+  // Check if no job data (after connection check and success check)
+  if (!jobData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
@@ -249,8 +251,8 @@ export default function JobFeeContent() {
     );
   }
 
-  const totalRewards = jobData ? (jobData.reward * jobData.total_workers) : 0;
-  const xtpEarn = jobData ? jobData.total_workers : 0;
+  const totalRewards = jobData.reward * jobData.total_workers;
+  const xtpEarn = jobData.total_workers;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -261,30 +263,28 @@ export default function JobFeeContent() {
           <p className="text-gray-500 mb-6">Pay fee to publish your job</p>
         </div>
 
-        {jobData && (
-          <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <div className="mb-3 pb-2 border-b border-gray-200">
-              <div className="text-sm text-gray-500">Job Title</div>
-              <div className="font-semibold text-gray-900">{jobData.title}</div>
-            </div>
-            <div className="mb-3 pb-2 border-b border-gray-200">
-              <div className="text-sm text-gray-500">Reward per Worker</div>
-              <div className="font-semibold text-gray-900">${jobData.reward} USDC</div>
-            </div>
-            <div className="mb-3 pb-2 border-b border-gray-200">
-              <div className="text-sm text-gray-500">Number of Workers</div>
-              <div className="font-semibold text-gray-900">{jobData.total_workers}</div>
-            </div>
-            <div className="mb-3 pb-2 border-b border-gray-200">
-              <div className="text-sm text-gray-500">Total Rewards (from XTaskAI Balance)</div>
-              <div className="font-semibold text-blue-600">${totalRewards.toFixed(3)} USDC</div>
-            </div>
-            <div className="mb-3">
-              <div className="text-sm text-gray-500">Fee (from MetaMask Wallet)</div>
-              <div className="font-semibold text-orange-500">0.01 USDC</div>
-            </div>
+        <div className="bg-gray-50 rounded-xl p-4 mb-6">
+          <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Job Title</div>
+            <div className="font-semibold text-gray-900">{jobData.title}</div>
           </div>
-        )}
+          <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Reward per Worker</div>
+            <div className="font-semibold text-gray-900">${jobData.reward} USDC</div>
+          </div>
+          <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Number of Workers</div>
+            <div className="font-semibold text-gray-900">{jobData.total_workers}</div>
+          </div>
+          <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Total Rewards (from XTaskAI Balance)</div>
+            <div className="font-semibold text-blue-600">${totalRewards.toFixed(3)} USDC</div>
+          </div>
+          <div className="mb-3">
+            <div className="text-sm text-gray-500">Fee (from MetaMask Wallet)</div>
+            <div className="font-semibold text-orange-500">0.01 USDC</div>
+          </div>
+        </div>
 
         <div className="bg-blue-50 rounded-xl p-3 mb-4">
           <div className="text-sm text-blue-800">
