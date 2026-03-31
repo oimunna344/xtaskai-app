@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useConnect } from "wagmi";
 import { parseUnits } from "viem";
+import { useSearchParams } from "next/navigation";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
@@ -41,6 +42,7 @@ const CONTRACT_ABI = [
 ] as const;
 
 export default function JobFeeContent() {
+  const searchParams = useSearchParams();
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { writeContractAsync, data: approveHash, isPending: isApprovePending } = useWriteContract();
@@ -56,14 +58,24 @@ export default function JobFeeContent() {
   const JOB_FEE = 0.01;
   const amountInWei = parseUnits(JOB_FEE.toString(), 6);
 
+  // Read job data from URL parameters
   useEffect(() => {
-    const stored = localStorage.getItem('pending_job');
-    if (stored) {
-      setJobData(JSON.parse(stored));
+    const jobDataParam = searchParams.get('job_data');
+    console.log('Job data from URL:', jobDataParam);
+    
+    if (jobDataParam) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(jobDataParam));
+        setJobData(parsed);
+        console.log('Parsed job data:', parsed);
+      } catch (e) {
+        console.error('Failed to parse job data:', e);
+        setErrorMsg("Invalid job data format. Please go back and try again.");
+      }
     } else {
       setErrorMsg("No job data found. Please go back and fill the job form.");
     }
-  }, []);
+  }, [searchParams]);
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: USDC_ADDRESS,
@@ -79,9 +91,27 @@ export default function JobFeeContent() {
     }
   }, [allowance, amountInWei]);
 
+  // Auto redirect to MetaMask on mobile
+  useEffect(() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile && !isConnected) {
+      const currentUrl = window.location.href;
+      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
+      window.location.href = metaMaskUrl;
+    }
+  }, [isConnected]);
+
   const handleConnect = () => {
-    const connector = connectors.find(c => c.id === 'injected');
-    if (connector) connect({ connector });
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      const currentUrl = window.location.href;
+      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
+      window.location.href = metaMaskUrl;
+    } else {
+      const connector = connectors.find(c => c.id === 'injected');
+      if (connector) connect({ connector });
+    }
   };
 
   const handleApprove = async () => {
@@ -145,7 +175,6 @@ export default function JobFeeContent() {
       const data = await res.json();
       
       if (data.success) {
-        localStorage.removeItem('pending_job');
         setStatus("success");
         setTimeout(() => {
           window.location.href = `https://xtaskai.com/base-mini-app/post-job.php?success=1`;
@@ -196,6 +225,25 @@ export default function JobFeeContent() {
           <h2 className="text-2xl font-bold text-green-600 mb-2">Job Posted Successfully!</h2>
           <p className="text-gray-600">Your job is pending admin approval.</p>
           <p className="text-gray-400 text-sm mt-4">Redirecting back...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no data
+  if (!jobData && status !== "success") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-2xl font-bold text-red-600 mb-2">No Job Data</h2>
+          <p className="text-gray-600 mb-6">{errorMsg || "Please go back and fill the job form."}</p>
+          <button
+            onClick={() => window.location.href = "https://xtaskai.com/base-mini-app/post-job.php"}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition"
+          >
+            Go Back
+          </button>
         </div>
       </div>
     );
