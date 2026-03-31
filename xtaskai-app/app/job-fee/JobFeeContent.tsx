@@ -230,7 +230,7 @@ export default function JobFeeContent() {
     );
   }
 
-  // Show error if no data
+  // Show error if no data (not in success state)
   if (!jobData && status !== "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
