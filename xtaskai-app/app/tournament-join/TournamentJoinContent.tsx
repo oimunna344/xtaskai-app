@@ -194,6 +194,7 @@ export default function TournamentJoinContent() {
     }
   }, [isApproveConfirmed, refetchAllowance]);
 
+  // Check if user is not connected
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -209,6 +210,7 @@ export default function TournamentJoinContent() {
     );
   }
 
+  // Check if transaction is successful
   if (status === "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -222,8 +224,8 @@ export default function TournamentJoinContent() {
     );
   }
 
-  // Show error if no tournament data (not in success state)
-  if (!tournamentId && status !== "success") {
+  // Check if no tournament data (after connection check and success check)
+  if (!tournamentId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
