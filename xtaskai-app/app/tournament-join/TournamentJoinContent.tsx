@@ -50,9 +50,11 @@ export default function TournamentJoinContent() {
   const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
   const { isLoading: isDepositConfirming, isSuccess: isDepositConfirmed } = useWaitForTransactionReceipt({ hash: depositHash });
   
+  // Get data from URL parameters
   const tournamentId = searchParams.get("id");
   const entryFee = searchParams.get("fee");
   const gameType = searchParams.get("game_type") || "solo";
+  const playersParam = searchParams.get("players");
   
   const [status, setStatus] = useState<"idle" | "approving" | "depositing" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -62,23 +64,21 @@ export default function TournamentJoinContent() {
   const PLATFORM_FEE = 0.003;
   const amountInWei = parseUnits(PLATFORM_FEE.toString(), 6);
 
-  // ✅ Read player names from localStorage
+  // ✅ Read player names from URL parameters
   useEffect(() => {
-    const stored = localStorage.getItem('tournament_player_names');
-    console.log('Stored player names:', stored);
-    
-    if (stored) {
+    if (playersParam) {
       try {
-        const names = JSON.parse(stored);
+        const names = JSON.parse(decodeURIComponent(playersParam));
         setPlayerNames(names);
-        console.log('Player names loaded:', names);
-        // Clear after reading
-        localStorage.removeItem('tournament_player_names');
+        console.log('Player names from URL:', names);
       } catch (e) {
         console.error('Failed to parse player names:', e);
+        setErrorMsg("Invalid player names data");
       }
+    } else {
+      setErrorMsg("Player names not found. Please go back and try again.");
     }
-  }, []);
+  }, [playersParam]);
 
   useEffect(() => {
     if (!tournamentId) {
@@ -153,7 +153,6 @@ export default function TournamentJoinContent() {
       return;
     }
 
-    // ✅ Check if player names are available
     if (playerNames.length === 0) {
       setStatus("error");
       setErrorMsg("Player names not found. Please go back and try again.");
@@ -241,12 +240,12 @@ export default function TournamentJoinContent() {
     );
   }
 
-  if (!tournamentId) {
+  if (!tournamentId || playerNames.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
           <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-bold text-red-600 mb-2">No Tournament Data</h2>
+          <h2 className="text-2xl font-bold text-red-600 mb-2">Missing Information</h2>
           <p className="text-gray-600 mb-6">{errorMsg || "Please go back and try again."}</p>
           <button
             onClick={() => window.location.href = "https://xtaskai.com/base-mini-app/tournaments.php"}
@@ -259,7 +258,6 @@ export default function TournamentJoinContent() {
     );
   }
 
-  // Show player names summary
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
