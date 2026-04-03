@@ -57,9 +57,28 @@ export default function TournamentJoinContent() {
   const [status, setStatus] = useState<"idle" | "approving" | "depositing" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [needsApproval, setNeedsApproval] = useState(false);
+  const [playerNames, setPlayerNames] = useState<string[]>([]);
 
   const PLATFORM_FEE = 0.003;
   const amountInWei = parseUnits(PLATFORM_FEE.toString(), 6);
+
+  // ✅ Read player names from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('tournament_player_names');
+    console.log('Stored player names:', stored);
+    
+    if (stored) {
+      try {
+        const names = JSON.parse(stored);
+        setPlayerNames(names);
+        console.log('Player names loaded:', names);
+        // Clear after reading
+        localStorage.removeItem('tournament_player_names');
+      } catch (e) {
+        console.error('Failed to parse player names:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!tournamentId) {
@@ -134,6 +153,20 @@ export default function TournamentJoinContent() {
       return;
     }
 
+    // ✅ Check if player names are available
+    if (playerNames.length === 0) {
+      setStatus("error");
+      setErrorMsg("Player names not found. Please go back and try again.");
+      return;
+    }
+
+    console.log('Registering join with:', {
+      tournament_id: tournamentId,
+      player_names: playerNames,
+      entry_fee: entryFee,
+      user_wallet: address
+    });
+
     try {
       const res = await fetch("https://xtaskai.com/base-mini-app/join-tournament.php", {
         method: "POST",
@@ -141,13 +174,15 @@ export default function TournamentJoinContent() {
         body: JSON.stringify({
           user_wallet: address,
           tournament_id: parseInt(tournamentId),
+          player_names: playerNames,
           tx_hash: txHash,
-          platform_fee: PLATFORM_FEE,
-          entry_fee: parseFloat(entryFee || "0")
+          entry_fee: parseFloat(entryFee || "0"),
+          platform_fee: PLATFORM_FEE
         })
       });
 
       const data = await res.json();
+      console.log('API response:', data);
       
       if (data.success) {
         setStatus("success");
@@ -159,6 +194,7 @@ export default function TournamentJoinContent() {
         setErrorMsg(data.error || "Failed to join tournament");
       }
     } catch (error) {
+      console.error('API error:', error);
       setStatus("error");
       setErrorMsg("Failed to join tournament");
     }
@@ -223,6 +259,7 @@ export default function TournamentJoinContent() {
     );
   }
 
+  // Show player names summary
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
@@ -242,6 +279,10 @@ export default function TournamentJoinContent() {
             <div className="font-semibold text-gray-900">{gameType === 'squad' ? 'Squad' : 'Solo'}</div>
           </div>
           <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Players</div>
+            <div className="font-semibold text-gray-900">{playerNames.join(", ")}</div>
+          </div>
+          <div className="mb-3 pb-2 border-b border-gray-200">
             <div className="text-sm text-gray-500">Entry Fee</div>
             <div className="font-semibold text-blue-600">${entryFee} USDC (from App Balance)</div>
           </div>
@@ -256,8 +297,7 @@ export default function TournamentJoinContent() {
 
         <div className="bg-blue-50 rounded-xl p-3 mb-4">
           <div className="text-sm text-blue-800">
-            💡 After paying the platform fee, you will be registered for the tournament.<br/>
-            💡 Entry fee will be deducted from your App Balance automatically.
+            💡 After paying the platform fee, entry fee will be deducted from your App Balance.
           </div>
         </div>
 
