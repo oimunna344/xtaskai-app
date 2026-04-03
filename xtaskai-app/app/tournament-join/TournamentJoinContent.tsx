@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useConnect } from "wagmi";
 import { parseUnits } from "viem";
+import { useSearchParams } from "next/navigation";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
@@ -41,6 +42,7 @@ const CONTRACT_ABI = [
 ] as const;
 
 export default function TournamentJoinContent() {
+  const searchParams = useSearchParams();
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { writeContractAsync, data: approveHash, isPending: isApprovePending } = useWriteContract();
@@ -48,7 +50,10 @@ export default function TournamentJoinContent() {
   const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
   const { isLoading: isDepositConfirming, isSuccess: isDepositConfirmed } = useWaitForTransactionReceipt({ hash: depositHash });
   
-  const [tournamentData, setTournamentData] = useState<any>(null);
+  // Get data from URL parameters
+  const tournamentId = searchParams.get("id");
+  const entryFee = searchParams.get("fee");
+  
   const [status, setStatus] = useState<"idle" | "approving" | "depositing" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [needsApproval, setNeedsApproval] = useState(false);
@@ -56,22 +61,11 @@ export default function TournamentJoinContent() {
   const JOIN_FEE = 0.003;
   const amountInWei = parseUnits(JOIN_FEE.toString(), 6);
 
-  // Get tournament data from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('pending_tournament');
-    console.log('Stored tournament data:', stored);
-    
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setTournamentData(parsed);
-      } catch (e) {
-        setErrorMsg("Invalid tournament data");
-      }
-    } else {
+    if (!tournamentId) {
       setErrorMsg("No tournament data found. Please go back and try again.");
     }
-  }, []);
+  }, [tournamentId]);
 
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: USDC_ADDRESS,
@@ -152,7 +146,7 @@ export default function TournamentJoinContent() {
   };
 
   const registerJoin = async (txHash: string) => {
-    if (!tournamentData) {
+    if (!tournamentId) {
       setStatus("error");
       setErrorMsg("No tournament data found");
       return;
@@ -164,7 +158,7 @@ export default function TournamentJoinContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_wallet: address,
-          tournament_id: tournamentData.id,
+          tournament_id: parseInt(tournamentId),
           tx_hash: txHash,
           fee: JOIN_FEE
         })
@@ -173,7 +167,6 @@ export default function TournamentJoinContent() {
       const data = await res.json();
       
       if (data.success) {
-        localStorage.removeItem('pending_tournament');
         setStatus("success");
         setTimeout(() => {
           window.location.href = `https://xtaskai.com/base-mini-app/tournaments.php?success=joined`;
@@ -229,7 +222,8 @@ export default function TournamentJoinContent() {
     );
   }
 
-  if (!tournamentData && status !== "success") {
+  // Show error if no tournament data (not in success state)
+  if (!tournamentId && status !== "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
@@ -256,21 +250,19 @@ export default function TournamentJoinContent() {
           <p className="text-gray-500 mb-6">Pay fee to join the tournament</p>
         </div>
 
-        {tournamentData && (
-          <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <div className="mb-3 pb-2 border-b border-gray-200">
-              <div className="text-sm text-gray-500">Tournament ID</div>
-              <div className="font-semibold text-gray-900">#{tournamentData.id}</div>
-            </div>
-            <div className="mb-3">
-              <div className="text-sm text-gray-500">Join Fee (from MetaMask Wallet)</div>
-              <div className="font-semibold text-orange-500">0.003 USDC</div>
-            </div>
-            <div className="mt-2 text-center text-xs text-gray-400">
-              💡 You will also earn <strong className="text-purple-600">+50 XTP</strong> for joining!
-            </div>
+        <div className="bg-gray-50 rounded-xl p-4 mb-6">
+          <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Tournament ID</div>
+            <div className="font-semibold text-gray-900">#{tournamentId}</div>
           </div>
-        )}
+          <div className="mb-3">
+            <div className="text-sm text-gray-500">Entry Fee (from MetaMask Wallet)</div>
+            <div className="font-semibold text-orange-500">0.003 USDC</div>
+          </div>
+          <div className="mt-2 text-center text-xs text-gray-400">
+            💡 You will also earn <strong className="text-purple-600">+50 XTP</strong> for joining!
+          </div>
+        </div>
 
         <div className="bg-blue-50 rounded-xl p-3 mb-4">
           <div className="text-sm text-blue-800">
