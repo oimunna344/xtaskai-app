@@ -50,7 +50,6 @@ export default function TournamentJoinContent() {
   const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
   const { isLoading: isDepositConfirming, isSuccess: isDepositConfirmed } = useWaitForTransactionReceipt({ hash: depositHash });
   
-  // Get data from URL parameters
   const tournamentId = searchParams.get("id");
   const entryFee = searchParams.get("fee");
   const gameType = searchParams.get("game_type") || "solo";
@@ -64,15 +63,18 @@ export default function TournamentJoinContent() {
   const PLATFORM_FEE = 0.003;
   const amountInWei = parseUnits(PLATFORM_FEE.toString(), 6);
 
-  // ✅ Read player names from URL parameters
+  // Read player names from URL params
   useEffect(() => {
+    console.log("All URL params:", window.location.search);
+    console.log("Players param:", playersParam);
+    
     if (playersParam) {
       try {
         const names = JSON.parse(decodeURIComponent(playersParam));
         setPlayerNames(names);
-        console.log('Player names from URL:', names);
+        console.log("Player names loaded:", names);
       } catch (e) {
-        console.error('Failed to parse player names:', e);
+        console.error("Failed to parse player names:", e);
         setErrorMsg("Invalid player names data");
       }
     } else {
@@ -116,7 +118,6 @@ export default function TournamentJoinContent() {
         functionName: "approve",
         args: [CONTRACT_ADDRESS, amountInWei],
       });
-      
     } catch (error: any) {
       setStatus("error");
       setErrorMsg(error.message || "Approval failed");
@@ -139,7 +140,6 @@ export default function TournamentJoinContent() {
         functionName: "deposit",
         args: [amountInWei],
       });
-      
     } catch (error: any) {
       setStatus("error");
       setErrorMsg(error.message || "Transaction failed");
@@ -155,16 +155,9 @@ export default function TournamentJoinContent() {
 
     if (playerNames.length === 0) {
       setStatus("error");
-      setErrorMsg("Player names not found. Please go back and try again.");
+      setErrorMsg("Player names not found");
       return;
     }
-
-    console.log('Registering join with:', {
-      tournament_id: tournamentId,
-      player_names: playerNames,
-      entry_fee: entryFee,
-      user_wallet: address
-    });
 
     try {
       const res = await fetch("https://xtaskai.com/base-mini-app/join-tournament.php", {
@@ -181,7 +174,6 @@ export default function TournamentJoinContent() {
       });
 
       const data = await res.json();
-      console.log('API response:', data);
       
       if (data.success) {
         setStatus("success");
@@ -193,7 +185,6 @@ export default function TournamentJoinContent() {
         setErrorMsg(data.error || "Failed to join tournament");
       }
     } catch (error) {
-      console.error('API error:', error);
       setStatus("error");
       setErrorMsg("Failed to join tournament");
     }
