@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
-
+const BUILDER_CODE = "bc_08dcvsfy";
 const USDC_ABI = [
   {
     type: "function",
