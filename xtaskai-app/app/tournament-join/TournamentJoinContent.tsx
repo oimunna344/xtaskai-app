@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
-const BUILDER_CODE = "bc_08dcvsfy";
+
 const USDC_ABI = [
   {
     type: "function",
@@ -50,16 +50,18 @@ export default function TournamentJoinContent() {
   const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
   const { isLoading: isDepositConfirming, isSuccess: isDepositConfirmed } = useWaitForTransactionReceipt({ hash: depositHash });
   
-  // Get data from URL parameters
   const tournamentId = searchParams.get("id");
   const entryFee = searchParams.get("fee");
+  const gameType = searchParams.get("game_type") || "solo";
   
   const [status, setStatus] = useState<"idle" | "approving" | "depositing" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [needsApproval, setNeedsApproval] = useState(false);
+  const [showPlayerForm, setShowPlayerForm] = useState(true);
+  const [playerNames, setPlayerNames] = useState<string[]>([]);
 
-  const JOIN_FEE = 0.003;
-  const amountInWei = parseUnits(JOIN_FEE.toString(), 6);
+  const PLATFORM_FEE = 0.003;
+  const amountInWei = parseUnits(PLATFORM_FEE.toString(), 6);
 
   useEffect(() => {
     if (!tournamentId) {
@@ -81,27 +83,9 @@ export default function TournamentJoinContent() {
     }
   }, [allowance, amountInWei]);
 
-  // Auto redirect to MetaMask on mobile
-  useEffect(() => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile && !isConnected) {
-      const currentUrl = window.location.href;
-      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
-      window.location.href = metaMaskUrl;
-    }
-  }, [isConnected]);
-
   const handleConnect = () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      const currentUrl = window.location.href;
-      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
-      window.location.href = metaMaskUrl;
-    } else {
-      const connector = connectors.find(c => c.id === 'injected');
-      if (connector) connect({ connector });
-    }
+    const connector = connectors.find(c => c.id === 'injected');
+    if (connector) connect({ connector });
   };
 
   const handleApprove = async () => {
@@ -122,7 +106,7 @@ export default function TournamentJoinContent() {
     }
   };
 
-  const handlePayFee = async () => {
+  const handlePayPlatformFee = async () => {
     if (!isConnected) {
       setErrorMsg("Please connect your wallet first!");
       return;
@@ -153,14 +137,16 @@ export default function TournamentJoinContent() {
     }
 
     try {
-      const res = await fetch("https://xtaskai.com/base-mini-app/api/tournament-join.php", {
+      const res = await fetch("https://xtaskai.com/base-mini-app/join-tournament.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_wallet: address,
           tournament_id: parseInt(tournamentId),
+          player_names: playerNames,
           tx_hash: txHash,
-          fee: JOIN_FEE
+          platform_fee: PLATFORM_FEE,
+          entry_fee: parseFloat(entryFee || "0")
         })
       });
 
@@ -194,7 +180,7 @@ export default function TournamentJoinContent() {
     }
   }, [isApproveConfirmed, refetchAllowance]);
 
-  // Check if user is not connected
+  // Not connected
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -210,7 +196,7 @@ export default function TournamentJoinContent() {
     );
   }
 
-  // Check if transaction is successful
+  // Success
   if (status === "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -224,7 +210,7 @@ export default function TournamentJoinContent() {
     );
   }
 
-  // Check if no tournament data (after connection check and success check)
+  // No tournament data
   if (!tournamentId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -243,13 +229,84 @@ export default function TournamentJoinContent() {
     );
   }
 
+  // Player Name Form
+  if (showPlayerForm) {
+    const playerCount = gameType === 'squad' ? 4 : 1;
+    
+    const handleSubmitNames = () => {
+      const names: string[] = [];
+      for(let i = 1; i <= playerCount; i++) {
+        const input = document.getElementById(`player_${i}`) as HTMLInputElement;
+        if(!input || !input.value.trim()) {
+          alert(`Please enter Player ${i} name`);
+          return;
+        }
+        names.push(input.value.trim());
+      }
+      setPlayerNames(names);
+      setShowPlayerForm(false);
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
+          <div className="text-center">
+            <div className="text-5xl mb-4">🏆</div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Join Tournament</h1>
+            <p className="text-gray-500 mb-6">Enter your player name(s)</p>
+          </div>
+
+          <div className="bg-blue-50 rounded-xl p-3 mb-4">
+            <div className="text-sm text-blue-800">
+              💡 Game Type: <strong>{gameType === 'squad' ? 'Squad (4 Players)' : 'Solo (1 Player)'}</strong>
+            </div>
+          </div>
+
+          {Array.from({ length: playerCount }).map((_, i) => (
+            <div key={i} className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">Player {i + 1} Name</label>
+              <input
+                type="text"
+                id={`player_${i + 1}`}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter in-game name"
+              />
+            </div>
+          ))}
+
+          <div className="bg-gray-50 rounded-xl p-3 mb-4">
+            <div className="text-sm text-gray-600">
+              💰 Entry Fee: <strong className="text-orange-600">${entryFee} USDC</strong> (from App Balance)<br/>
+              💰 Platform Fee: <strong className="text-orange-600">0.003 USDC</strong> (from Wallet)
+            </div>
+          </div>
+
+          <button
+            onClick={handleSubmitNames}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition"
+          >
+            Continue to Payment
+          </button>
+
+          <button
+            onClick={() => window.location.href = "https://xtaskai.com/base-mini-app/tournaments.php"}
+            className="w-full mt-3 text-gray-500 text-sm py-2 hover:text-gray-700 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Payment Page
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center">
           <div className="text-5xl mb-4">🏆</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Join Tournament</h1>
-          <p className="text-gray-500 mb-6">Pay fee to join the tournament</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Pay Platform Fee</h1>
+          <p className="text-gray-500 mb-6">Pay 0.003 USDC to complete tournament join</p>
         </div>
 
         <div className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -257,8 +314,20 @@ export default function TournamentJoinContent() {
             <div className="text-sm text-gray-500">Tournament ID</div>
             <div className="font-semibold text-gray-900">#{tournamentId}</div>
           </div>
+          <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Game Type</div>
+            <div className="font-semibold text-gray-900">{gameType === 'squad' ? 'Squad (4 Players)' : 'Solo (1 Player)'}</div>
+          </div>
+          <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Players</div>
+            <div className="font-semibold text-gray-900">{playerNames.join(", ")}</div>
+          </div>
+          <div className="mb-3 pb-2 border-b border-gray-200">
+            <div className="text-sm text-gray-500">Entry Fee</div>
+            <div className="font-semibold text-blue-600">${entryFee} USDC (from App Balance)</div>
+          </div>
           <div className="mb-3">
-            <div className="text-sm text-gray-500">Entry Fee (from MetaMask Wallet)</div>
+            <div className="text-sm text-gray-500">Platform Fee (from MetaMask Wallet)</div>
             <div className="font-semibold text-orange-500">0.003 USDC</div>
           </div>
           <div className="mt-2 text-center text-xs text-gray-400">
@@ -268,7 +337,7 @@ export default function TournamentJoinContent() {
 
         <div className="bg-blue-50 rounded-xl p-3 mb-4">
           <div className="text-sm text-blue-800">
-            💡 After paying the fee, you will be registered for the tournament.
+            💡 After paying the platform fee, entry fee will be deducted from your App Balance.
           </div>
         </div>
 
@@ -295,7 +364,7 @@ export default function TournamentJoinContent() {
           </button>
         ) : (
           <button
-            onClick={handlePayFee}
+            onClick={handlePayPlatformFee}
             disabled={isDepositPending || status === "depositing" || isDepositConfirming}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50"
           >
@@ -311,10 +380,10 @@ export default function TournamentJoinContent() {
         )}
 
         <button
-          onClick={() => window.location.href = "https://xtaskai.com/base-mini-app/tournaments.php"}
+          onClick={() => setShowPlayerForm(true)}
           className="w-full mt-3 text-gray-500 text-sm py-2 hover:text-gray-700 transition"
         >
-          Cancel
+          Back
         </button>
       </div>
     </div>
