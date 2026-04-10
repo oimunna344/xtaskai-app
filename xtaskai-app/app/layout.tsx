@@ -15,11 +15,16 @@ export default function RootLayout({
 }) {
   useEffect(() => {
     const init = async () => {
-      // Farcaster environment check (iframe-এ চলছে কিনা)
+      // Farcaster environment check
       if (window.parent !== window) {
         try {
+          // সঠিকভাবে SDK ready কল
           await sdk.actions.ready();
           console.log("✅ Farcaster SDK ready!");
+          
+          // Optional: Get context
+          const context = await sdk.context;
+          console.log("Farcaster context:", context);
         } catch (error) {
           console.error("Farcaster SDK error:", error);
         }
@@ -35,12 +40,12 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.ico" />
         <meta property="og:title" content="XTaskAI - Earn USDC on Base" />
-        <meta property="og:description" content="Complete microtasks, join tournaments, play PvP games & earn USDC on Base network" />
+        <meta property="og:description" content="Complete tasks and earn USDC on Base network" />
         <meta property="og:image" content="https://xtaskai-app.vercel.app/icon.png" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="XTaskAI - Earn USDC on Base" />
-        <meta name="twitter:description" content="Complete microtasks, join tournaments, play PvP games & earn USDC" />
+        <meta name="twitter:description" content="Complete tasks and earn USDC on Base network" />
         <meta name="twitter:image" content="https://xtaskai-app.vercel.app/icon.png" />
       </head>
       <body className={inter.className}>
