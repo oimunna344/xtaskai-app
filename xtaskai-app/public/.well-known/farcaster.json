@@ -14,6 +14,8 @@
     "requiredChains": ["eip155:8453"],
     "tags": ["tasks", "earn", "base"],
     "primaryCategory": "utility",
+    "splashImageUrl": "https://xtaskai-app.vercel.app/icon.png",
+    "splashBackgroundColor": "#0052ff",
     "requiredCapabilities": ["actions.ready", "wallet.getEthereumProvider"]
   }
 }
