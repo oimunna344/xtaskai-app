@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@farcaster/frame-sdk": "^0.2.0",
+    "@farcaster/frame-wagmi-connector": "^2.0.0",
     "@tanstack/react-query": "^5.95.2",
     "ethers": "^5.7.2",
     "next": "16.2.1",

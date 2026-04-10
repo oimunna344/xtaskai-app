@@ -1,131 +1,68 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-import sdk from "@farcaster/frame-sdk";
+import { useAccount, useConnect } from "wagmi";
 
 export default function Home() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
-  const [stats, setStats] = useState({ users: 0, tasks: 0, earned: 0 });
-  const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
   const [isFarcaster, setIsFarcaster] = useState(false);
 
-  // Check if running inside Farcaster
   useEffect(() => {
-    const checkFarcaster = async () => {
-      if (window.parent !== window) {
-        setIsFarcaster(true);
-        try {
-          const context = await sdk.context;
-          console.log("Farcaster context:", context);
-          // Direct redirect - no walletAddress property
-          window.location.href = "https://xtaskai.com/base-mini-app/dashboard.php";
-          await sdk.actions.ready();
-        } catch (error) {
-          console.error("Farcaster SDK error:", error);
-          window.location.href = "https://xtaskai.com/base-mini-app/dashboard.php";
-        }
-      }
-    };
-    checkFarcaster();
-  }, []);
-
-  // Live Stats
-  useEffect(() => {
-    fetch("/api/stats")
-      .then(res => res.json())
-      .then(data => {
-        setStats(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  // Loading animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 30);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Auto redirect (Normal browser)
-  useEffect(() => {
-    if (!isFarcaster && isConnected && address) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const ref = urlParams.get('ref') || '';
-      window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}&ref=${ref}`;
+    // Check if inside Farcaster iframe
+    if (window.parent !== window) {
+      setIsFarcaster(true);
     }
-  }, [isFarcaster, isConnected, address]);
+  }, []);
 
-  // Handle connect button click
+  useEffect(() => {
+    if (isConnected && address) {
+      window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}`;
+    }
+  }, [isConnected, address]);
+
   const handleConnect = () => {
-    if (isFarcaster) {
-      window.location.href = "https://xtaskai.com/base-mini-app/dashboard.php";
-    } else {
+    if (connectors[0]) {
       connect({ connector: connectors[0] });
     }
   };
 
-  if (!isConnected && !isFarcaster) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-        <div className="text-center w-[280px] mx-auto px-3">
-          <div className="mb-5">
-            <h1 className="text-2xl font-bold text-white">XTASKAI</h1>
-            <p className="text-white/70 text-xs mt-1">Complete Tasks • Earn USDC • Base Chain</p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mb-6">
-            <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl py-2.5 text-center shadow-lg">
-              <div className="text-xl font-bold text-white">{loading ? "..." : stats.tasks}</div>
-              <div className="text-[10px] text-white/80">TASKS</div>
-            </div>
-            <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl py-2.5 text-center shadow-lg">
-              <div className="text-xl font-bold text-white">{loading ? "..." : `$${stats.earned}`}</div>
-              <div className="text-[10px] text-white/80">EARNED</div>
-            </div>
-            <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl py-2.5 text-center shadow-lg">
-              <div className="text-xl font-bold text-white">{loading ? "..." : stats.users}</div>
-              <div className="text-[10px] text-white/80">USERS</div>
-            </div>
-          </div>
-
-          <div className="mb-5">
-            <div className="w-full bg-white/30 rounded-full h-1.5 overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full transition-all duration-100"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-            <p className="text-white/60 text-[10px] mt-1">INITIALIZING {progress}%</p>
-          </div>
-
+  return (
+    <div style={{ 
+      minHeight: "100vh", 
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "center",
+      background: "#0a0f1e",
+      color: "white"
+    }}>
+      <div style={{ textAlign: "center", padding: "20px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "bold", marginBottom: "20px" }}>
+          XTaskAI
+        </h1>
+        <p style={{ marginBottom: "30px", opacity: 0.7 }}>
+          Earn USDC on Base Chain
+        </p>
+        {!isConnected && (
           <button
             onClick={handleConnect}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:opacity-90 transition shadow-lg"
+            style={{
+              background: "linear-gradient(135deg, #0052ff, #0037b3)",
+              color: "white",
+              border: "none",
+              padding: "14px 28px",
+              borderRadius: "12px",
+              fontSize: "16px",
+              fontWeight: "bold",
+              cursor: "pointer"
+            }}
           >
-            🔌 Connect Wallet
+            {isFarcaster ? "🔌 Connect Farcaster Wallet" : "🔌 Connect Wallet"}
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto mb-2"></div>
-        <p className="text-white/70 text-xs">Redirecting...</p>
+        )}
+        {isConnected && (
+          <p style={{ marginTop: "20px" }}>Redirecting to Dashboard...</p>
+        )}
       </div>
     </div>
   );
