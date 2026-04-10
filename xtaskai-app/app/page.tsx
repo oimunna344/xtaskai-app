@@ -20,13 +20,13 @@ export default function Home() {
         setIsFarcaster(true);
         try {
           const context = await sdk.context;
-          if (context?.user?.walletAddress) {
-            // Auto redirect with Farcaster wallet
-            window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${context.user.walletAddress}`;
-          }
+          console.log("Farcaster context:", context);
+          // Direct redirect - no walletAddress property
+          window.location.href = "https://xtaskai.com/base-mini-app/dashboard.php";
           await sdk.actions.ready();
         } catch (error) {
           console.error("Farcaster SDK error:", error);
+          window.location.href = "https://xtaskai.com/base-mini-app/dashboard.php";
         }
       }
     };
@@ -70,10 +70,8 @@ export default function Home() {
   // Handle connect button click
   const handleConnect = () => {
     if (isFarcaster) {
-      // Farcaster environment - open directly
       window.location.href = "https://xtaskai.com/base-mini-app/dashboard.php";
     } else {
-      // Normal browser - use MetaMask
       connect({ connector: connectors[0] });
     }
   };
@@ -87,7 +85,6 @@ export default function Home() {
             <p className="text-white/70 text-xs mt-1">Complete Tasks • Earn USDC • Base Chain</p>
           </div>
 
-          {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-2 mb-6">
             <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl py-2.5 text-center shadow-lg">
               <div className="text-xl font-bold text-white">{loading ? "..." : stats.tasks}</div>
@@ -103,7 +100,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Loading Bar */}
           <div className="mb-5">
             <div className="w-full bg-white/30 rounded-full h-1.5 overflow-hidden">
               <div 
@@ -114,7 +110,6 @@ export default function Home() {
             <p className="text-white/60 text-[10px] mt-1">INITIALIZING {progress}%</p>
           </div>
 
-          {/* Connect Wallet Button */}
           <button
             onClick={handleConnect}
             className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:opacity-90 transition shadow-lg"
