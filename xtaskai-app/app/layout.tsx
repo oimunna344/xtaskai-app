@@ -8,9 +8,6 @@ import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
-// metadata ক্লায়েন্ট কম্পোনেন্টে export করা যায় না, তাই আলাদা করে রাখলাম
-// সার্ভার কম্পোনেন্টের জন্য metadata আলাদা করতে হবে
-
 export default function RootLayout({
   children,
 }: {
@@ -39,12 +36,12 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
         <meta property="og:title" content="XTaskAI - Earn USDC on Base" />
         <meta property="og:description" content="Complete microtasks, join tournaments, play PvP games & earn USDC on Base network" />
-        <meta property="og:image" content="https://xtaskai-app.vercel.app/og.png" />
+        <meta property="og:image" content="https://xtaskai-app.vercel.app/icon.png" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="XTaskAI - Earn USDC on Base" />
         <meta name="twitter:description" content="Complete microtasks, join tournaments, play PvP games & earn USDC" />
-        <meta name="twitter:image" content="https://xtaskai-app.vercel.app/og.png" />
+        <meta name="twitter:image" content="https://xtaskai-app.vercel.app/icon.png" />
       </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
