@@ -1,7 +1,19 @@
 {
-  "name": "XTaskAI",
-  "description": "Complete tasks and earn USDC on Base network",
-  "iconPath": "/favicon.ico",
-  "baseAppId": "69c0256cfa9c0ad39d2bcd03",
-  "url": "https://xtaskai-app.vercel.app"
+  "accountAssociation": {
+    "header": "...",
+    "payload": "...",
+    "signature": "..."
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "XTaskAI",
+    "description": "Complete tasks and earn USDC on Base network",
+    "iconUrl": "https://xtaskai-app.vercel.app/icon.png",
+    "homeUrl": "https://xtaskai-app.vercel.app",
+    "canonicalDomain": "xtaskai-app.vercel.app",
+    "requiredChains": ["eip155:8453"],
+    "tags": ["tasks", "earn", "base"],
+    "primaryCategory": "utility",
+    "requiredCapabilities": ["actions.ready", "wallet.getEthereumProvider"]
+  }
 }
