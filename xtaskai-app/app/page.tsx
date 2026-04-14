@@ -6,63 +6,62 @@ import { useAccount, useConnect } from "wagmi";
 export default function Home() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
+
   const [isFarcaster, setIsFarcaster] = useState(false);
 
   useEffect(() => {
-    // Check if inside Farcaster iframe
-    if (window.parent !== window) {
+    if (typeof window !== "undefined" && window.parent !== window) {
       setIsFarcaster(true);
     }
   }, []);
 
   useEffect(() => {
     if (isConnected && address) {
-      window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}`;
+      const url = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}`;
+
+      if (isFarcaster) {
+        window.open(url, "_blank");
+      } else {
+        window.location.href = url;
+      }
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, isFarcaster]);
 
   const handleConnect = () => {
-    if (connectors[0]) {
+    if (isFarcaster) {
+      alert("Farcaster wallet auto ব্যবহার হবে");
+      return;
+    }
+
+    if (connectors && connectors.length > 0) {
       connect({ connector: connectors[0] });
+    } else {
+      alert("No wallet found");
     }
   };
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      display: "flex", 
-      alignItems: "center", 
-      justifyContent: "center",
-      background: "#0a0f1e",
-      color: "white"
-    }}>
-      <div style={{ textAlign: "center", padding: "20px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: "bold", marginBottom: "20px" }}>
-          XTaskAI
-        </h1>
-        <p style={{ marginBottom: "30px", opacity: 0.7 }}>
-          Earn USDC on Base Chain
-        </p>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#0a0f1e",
+        color: "white",
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <h1>XTaskAI</h1>
+        <p>Earn USDC on Base</p>
+
         {!isConnected && (
-          <button
-            onClick={handleConnect}
-            style={{
-              background: "linear-gradient(135deg, #0052ff, #0037b3)",
-              color: "white",
-              border: "none",
-              padding: "14px 28px",
-              borderRadius: "12px",
-              fontSize: "16px",
-              fontWeight: "bold",
-              cursor: "pointer"
-            }}
-          >
-            {isFarcaster ? "🔌 Connect Farcaster Wallet" : "🔌 Connect Wallet"}
+          <button onClick={handleConnect}>
+            {isFarcaster ? "Use Farcaster Wallet" : "Connect Wallet"}
           </button>
         )}
-        {isConnected && (
-          <p style={{ marginTop: "20px" }}>Redirecting to Dashboard...</p>
-        )}
+
+        {isConnected && <p>Redirecting...</p>}
       </div>
     </div>
   );

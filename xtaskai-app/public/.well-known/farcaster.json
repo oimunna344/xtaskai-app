@@ -1,21 +1,16 @@
 {
-  "accountAssociation": {
-    "header": "eyJmaWQiOjg2NjI1OSwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDZDZmZGRmNBMTU5QzMzYjMyYzY1MjZhRjRhQTJGOWU5YzgyNjI2YjYifQ",
-    "payload": "eyJkb21haW4iOiJ4dGFza2FpLWFwcC52ZXJjZWwuYXBwIn0",
-    "signature": "dgNrTO6cy2lFnfsSR2v5NxNnDnqwIZb4UJ2uxSm6AHRU2hnq1R/iWCeWxgh7JPncKPukc1BY++qshKXwn2jCTRs="
-  },
   "miniapp": {
     "version": "1",
     "name": "XTaskAI",
-    "description": "Complete tasks and earn USDC on Base network",
+    "description": "Complete tasks and earn USDC",
     "iconUrl": "https://xtaskai-app.vercel.app/icon.png",
     "homeUrl": "https://xtaskai-app.vercel.app",
     "canonicalDomain": "xtaskai-app.vercel.app",
     "requiredChains": ["eip155:8453"],
-    "tags": ["tasks", "earn", "base"],
+    "tags": ["tasks", "earn"],
     "primaryCategory": "utility",
     "splashImageUrl": "https://xtaskai-app.vercel.app/icon.png",
     "splashBackgroundColor": "#0052ff",
-    "requiredCapabilities": ["actions.ready", "wallet.getEthereumProvider"]
+    "requiredCapabilities": ["actions.ready"]
   }
 }
