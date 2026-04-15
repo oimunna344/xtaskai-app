@@ -1,4 +1,9 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjg2NjI1OSwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDZDZmZGRmNBMTU5QzMzYjMyYzY1MjZhRjRhQTJGOWU5YzgyNjI2YjYifQ",
+    "payload": "eyJkb21haW4iOiJ4dGFza2FpLWFwcC52ZXJjZWwuYXBwIn0",
+    "signature": "dgNrTO6cy2lFnfsSR2v5NxNnDnqwIZb4UJ2uxSm6AHRU2hnq1R/iWCeWxgh7JPncKPukc1BY++qshKXwn2jCTRs="
+  },
   "frame": {
     "version": "1",
     "name": "XTaskAI",
