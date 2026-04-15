@@ -63,9 +63,9 @@ export default function DepositPage() {
     query: { enabled: !!address },
   });
 
-  // Auto-connect Farcaster wallet when inside Farcaster
+  // Farcaster-এ খুললে auto-connect
   useEffect(() => {
-    if (!isConnected && window.parent !== window) {
+    if (!isConnected && typeof window !== "undefined" && window.parent !== window) {
       connect({ connector: farcasterFrame() });
     }
   }, [isConnected, connect]);
@@ -133,7 +133,6 @@ export default function DepositPage() {
     });
   };
 
-  // Not connected — show connect options
   if (!isConnected) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
