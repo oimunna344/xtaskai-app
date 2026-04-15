@@ -1,36 +1,28 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAccount, useConnect } from "wagmi";
-import { injected } from "wagmi/connectors";
 import sdk from "@farcaster/frame-sdk";
 
 export default function Home() {
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-
-  // Farcaster SDK ready + auto-connect
   useEffect(() => {
     const init = async () => {
       try {
+        const context = await sdk.context;
         await sdk.actions.ready();
-        // Auto-connect wallet
-        if (!isConnected) {
-          connect({ connector: injected() });
+
+        if (context?.user?.fid) {
+          // Farcaster user পেয়েছি — সরাসরি redirect
+          window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?fid=${context.user.fid}&username=${encodeURIComponent(context.user.username ?? "")}`;
+        } else {
+          // Browser-এ খুললে wallet connect দেখাবে
+          document.getElementById("msg")!.innerText = "Please open inside Farcaster.";
         }
       } catch (e) {
-        console.error("SDK error:", e);
+        document.getElementById("msg")!.innerText = "Please open inside Farcaster.";
       }
     };
     init();
   }, []);
-
-  // Redirect when connected
-  useEffect(() => {
-    if (isConnected && address) {
-      window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}`;
-    }
-  }, [isConnected, address]);
 
   return (
     <div style={{
@@ -45,10 +37,7 @@ export default function Home() {
       <div style={{ textAlign: "center" }}>
         <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>XTaskAI</h1>
         <p style={{ color: "#888", marginBottom: "2rem" }}>Earn USDC on Base</p>
-        {isConnected
-          ? <p style={{ color: "#4ade80" }}>✅ Redirecting...</p>
-          : <p style={{ color: "#888" }}>Connecting wallet...</p>
-        }
+        <p id="msg" style={{ color: "#888" }}>Verifying identity...</p>
       </div>
     </div>
   );
