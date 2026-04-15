@@ -35,6 +35,7 @@ export default function DepositPage() {
     transport: http("https://mainnet.base.org"),
   });
 
+  // Farcaster SDK init
   useEffect(() => {
     const init = async () => {
       try {
@@ -43,6 +44,7 @@ export default function DepositPage() {
           method: "eth_requestAccounts"
         }) as string[];
         if (accounts?.[0]) setAddress(accounts[0] as `0x${string}`);
+        else setError("Please open inside Farcaster.");
       } catch (e) {
         setError("Please open inside Farcaster.");
       } finally {
@@ -52,6 +54,7 @@ export default function DepositPage() {
     init();
   }, []);
 
+  // USDC Balance
   useEffect(() => {
     if (!address) return;
     publicClient.readContract({
@@ -60,6 +63,7 @@ export default function DepositPage() {
     }).then((bal) => setBalance(Number(bal) / 1e6)).catch(console.error);
   }, [address]);
 
+  // Allowance check
   useEffect(() => {
     if (!address || !amount) return;
     try {
@@ -154,7 +158,7 @@ export default function DepositPage() {
     }
   };
 
-  // Loading screen
+  // Loading
   if (loading) {
     return (
       <div style={styles.bg}>
@@ -174,7 +178,7 @@ export default function DepositPage() {
         <div style={styles.card}>
           <div style={styles.logo}>⬡</div>
           <h1 style={styles.title}>XTaskAI</h1>
-          <p style={{ color: "#a78bfa", marginTop: 8 }}>{error || "Open inside Farcaster."}</p>
+          <p style={{ color: "#a78bfa", marginTop: 8 }}>{error}</p>
         </div>
       </div>
     );
@@ -195,11 +199,10 @@ export default function DepositPage() {
 
   return (
     <div style={styles.bg}>
-      {/* Decorative blobs */}
       <div style={styles.blob1} />
       <div style={styles.blob2} />
 
-      <div style={styles.card}>
+      <div style={{ ...styles.card, textAlign: "left" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
           <div>
@@ -216,13 +219,13 @@ export default function DepositPage() {
         <div style={styles.walletBox}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <p style={{ fontSize: 11, color: "#7c3aed", margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Wallet</p>
+              <p style={{ fontSize: 11, color: "#7c3aed", margin: 0, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>Wallet</p>
               <p style={{ fontSize: 13, color: "#e2d9f3", margin: 0, marginTop: 2, fontFamily: "monospace" }}>
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </p>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <p style={{ fontSize: 11, color: "#7c3aed", margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>USDC Balance</p>
+            <div style={{ textAlign: "right" as const }}>
+              <p style={{ fontSize: 11, color: "#7c3aed", margin: 0, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>USDC Balance</p>
               <p style={{ fontSize: 20, color: "#4ade80", margin: 0, marginTop: 2, fontWeight: 800 }}>
                 {balance !== null ? `$${balance.toFixed(2)}` : "—"}
               </p>
@@ -232,7 +235,7 @@ export default function DepositPage() {
 
         {/* Amount input */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, color: "#a78bfa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 8 }}>
+          <label style={{ fontSize: 12, color: "#a78bfa", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", display: "block", marginBottom: 8 }}>
             Amount (USDC)
           </label>
           <div style={styles.inputWrapper}>
@@ -269,23 +272,21 @@ export default function DepositPage() {
 
         {/* Error */}
         {error && (
-          <div style={styles.errorBox}>
-            ⚠️ {error}
-          </div>
+          <div style={styles.errorBox}>⚠️ {error}</div>
         )}
 
-        {/* Approve button */}
+        {/* Approve */}
         {needsApproval && (
           <button
             onClick={handleApprove}
             disabled={isPending}
             style={{ ...styles.btn, background: isPending ? "#4b2d8a" : "linear-gradient(135deg, #f59e0b, #d97706)", marginBottom: 10, opacity: isPending ? 0.7 : 1 }}
           >
-            {step === "approving" ? "⏳ Approving USDC..." : "🔓 Approve USDC First"}
+            {step === "approving" ? "⏳ Approving..." : "🔓 Approve USDC First"}
           </button>
         )}
 
-        {/* Deposit button */}
+        {/* Deposit */}
         <button
           onClick={handleDeposit}
           disabled={isPending || balance === null || needsApproval}
@@ -341,7 +342,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)",
     position: "relative",
     zIndex: 1,
-    textAlign: "center" as const,
+    textAlign: "center",
   },
   walletBox: {
     background: "rgba(124,58,237,0.08)",
@@ -377,7 +378,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",
-    transition: "all 0.15s",
   },
   btn: {
     width: "100%",
@@ -410,7 +410,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#f87171",
     fontSize: 13,
     marginBottom: 12,
-    textAlign: "left" as const,
+    textAlign: "left",
   },
   badge: {
     background: "rgba(74,222,128,0.1)",
@@ -423,28 +423,14 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
   },
-  logo: {
-    fontSize: 48,
-    marginBottom: 8,
-    color: "#7c3aed",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 800,
-    color: "#fff",
-    margin: 0,
-  },
-  loadingText: {
-    color: "#a78bfa",
-    marginTop: 12,
-  },
+  logo: { fontSize: 48, marginBottom: 8, color: "#7c3aed" },
+  title: { fontSize: 24, fontWeight: 800, color: "#fff", margin: 0 },
+  loadingText: { color: "#a78bfa", marginTop: 12 },
   spinner: {
-    width: 32,
-    height: 32,
+    width: 32, height: 32,
     border: "3px solid rgba(124,58,237,0.2)",
     borderTop: "3px solid #7c3aed",
     borderRadius: "50%",
-    animation: "spin 1s linear infinite",
     margin: "16px auto 0",
   },
 };
