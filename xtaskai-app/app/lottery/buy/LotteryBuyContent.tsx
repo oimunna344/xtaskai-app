@@ -67,10 +67,10 @@ export default function LotteryBuyContent() {
       const provider = sdk.wallet.ethProvider;
       providerRef.current = provider;
 
-      const accounts: string[] = await provider.request({ method: "eth_requestAccounts" });
+      const accounts = await provider.request({ method: "eth_requestAccounts" }) as readonly `0x${string}`[];
       if (!accounts || accounts.length === 0) throw new Error("No wallet found");
 
-      setWalletAddress(accounts[0]);
+      setWalletAddress(accounts[0] as string);
       await checkAllowance(accounts[0], provider);
       setStatus("idle");
     } catch (err: any) {
@@ -79,14 +79,14 @@ export default function LotteryBuyContent() {
     }
   }
 
-  async function checkAllowance(owner: string, provider: any) {
+  async function checkAllowance(owner: `0x${string}`, provider: any) {
     try {
       const publicClient = createPublicClient({ chain: base, transport: custom(provider) });
       const allowance = await publicClient.readContract({
         address: USDC_ADDRESS,
         abi: USDC_ABI,
         functionName: "allowance",
-        args: [owner as `0x${string}`, CONTRACT_ADDRESS as `0x${string}`],
+        args: [owner, CONTRACT_ADDRESS as `0x${string}`],
       });
       setNeedsApproval(allowance < amountInUnits);
     } catch {
