@@ -9,26 +9,23 @@ export default function Home() {
   useEffect(() => {
     const init = async () => {
       try {
-        // First call ready(), then get context
+        // ready() আগে call করতে হবে
         await sdk.actions.ready();
         const context = await sdk.context;
 
         if (context?.user?.fid) {
           setMsg("✅ Verified! Redirecting...");
-          window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?fid=${context.user.fid}&username=${encodeURIComponent(context.user.username ?? "")}&wallet=${context.user.fid}`;
+          window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?fid=${context.user.fid}&username=${encodeURIComponent(context.user.username ?? "")}`;
         } else {
-          // No FID — try wallet
-          try {
-            const accounts = await sdk.wallet.ethProvider.request({
-              method: "eth_requestAccounts"
-            }) as string[];
-            if (accounts?.[0]) {
-              setMsg("✅ Wallet connected! Redirecting...");
-              window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${accounts[0]}`;
-            } else {
-              setMsg("Please open inside Farcaster.");
-            }
-          } catch (e) {
+          // FID না পেলে wallet দিয়ে চেষ্টা
+          const accounts = await sdk.wallet.ethProvider.request({
+            method: "eth_requestAccounts"
+          }) as string[];
+          
+          if (accounts?.[0]) {
+            setMsg("✅ Connected! Redirecting...");
+            window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${accounts[0]}`;
+          } else {
             setMsg("Please open inside Farcaster.");
           }
         }
@@ -45,13 +42,13 @@ export default function Home() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "#0a0f1e",
+      background: "linear-gradient(135deg, #0f0a1e 0%, #1a0a2e 50%, #0d0d1a 100%)",
       color: "white",
       fontFamily: "Arial, sans-serif",
     }}>
       <div style={{ textAlign: "center" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: "0.5rem" }}>XTaskAI</h1>
-        <p style={{ color: "#6b7280", marginBottom: "1.5rem" }}>Earn USDC on Base</p>
+        <p style={{ color: "#7c3aed", marginBottom: "1.5rem" }}>Earn USDC on Base</p>
         <p style={{ color: "#a78bfa" }}>{msg}</p>
       </div>
     </div>
