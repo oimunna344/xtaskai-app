@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { createPublicClient, createWalletClient, custom, parseUnits, encodeFunctionData } from "viem";
+import { createPublicClient, custom, parseUnits, encodeFunctionData } from "viem";
 import { base } from "viem/chains";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -126,20 +126,23 @@ export default function RedeemPayContent() {
     setErrorMsg("");
     try {
       await switchToBase();
-      const walletClient = createWalletClient({ chain: base, transport: custom(providerRef.current) });
       const publicClient = createPublicClient({ chain: base, transport: custom(providerRef.current) });
 
-      const tx = await walletClient.sendTransaction({
-        account: walletAddress as `0x${string}`,
-        to: USDC_ADDRESS as `0x${string}`,
-        data: encodeFunctionData({
-          abi: USDC_ABI,
-          functionName: "approve",
-          args: [CONTRACT_ADDRESS as `0x${string}`, amountInUnits],
-        }),
+      const txHash = await providerRef.current.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: walletAddress,
+          to: USDC_ADDRESS,
+          data: encodeFunctionData({
+            abi: USDC_ABI,
+            functionName: "approve",
+            args: [CONTRACT_ADDRESS as `0x${string}`, amountInUnits],
+          }),
+          value: '0x0',
+        }],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash: tx });
+      await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
       setNeedsApproval(false);
       setStatus("idle");
     } catch (err: any) {
@@ -154,21 +157,24 @@ export default function RedeemPayContent() {
     setErrorMsg("");
     try {
       await switchToBase();
-      const walletClient = createWalletClient({ chain: base, transport: custom(providerRef.current) });
       const publicClient = createPublicClient({ chain: base, transport: custom(providerRef.current) });
 
-      const tx = await walletClient.sendTransaction({
-        account: walletAddress as `0x${string}`,
-        to: CONTRACT_ADDRESS as `0x${string}`,
-        data: encodeFunctionData({
-          abi: CONTRACT_ABI,
-          functionName: "deposit",
-          args: [amountInUnits],
-        }),
+      const txHash = await providerRef.current.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: walletAddress,
+          to: CONTRACT_ADDRESS,
+          data: encodeFunctionData({
+            abi: CONTRACT_ABI,
+            functionName: "deposit",
+            args: [amountInUnits],
+          }),
+          value: '0x0',
+        }],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash: tx });
-      await processClaim(tx);
+      await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+      await processClaim(txHash as string);
     } catch (err: any) {
       setErrorMsg(err?.message || "Transaction failed");
       setStatus("error");
@@ -210,7 +216,6 @@ export default function RedeemPayContent() {
     }
   }
 
-  // Connecting state
   if (status === "connecting") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -222,7 +227,6 @@ export default function RedeemPayContent() {
     );
   }
 
-  // Success state
   if (status === "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -241,7 +245,6 @@ export default function RedeemPayContent() {
     );
   }
 
-  // No redeem data state
   if (!code_id || !code) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
