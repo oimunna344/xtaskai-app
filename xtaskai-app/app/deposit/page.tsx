@@ -18,32 +18,33 @@ const CONTRACT_ABI = [
   { type: "function", name: "deposit", inputs: [{ name: "amount", type: "uint256" }], outputs: [], stateMutability: "nonpayable" },
 ] as const;
 
+const QUICK_AMOUNTS = [0.5, 1, 5, 10];
+
 export default function DepositPage() {
-  const [amount, setAmount] = useState("0.001");
+  const [amount, setAmount] = useState("1");
   const [address, setAddress] = useState<`0x${string}` | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isPending, setIsPending] = useState(false);
+  const [step, setStep] = useState<"idle" | "approving" | "depositing" | "done">("idle");
 
   const publicClient = createPublicClient({
     chain: base,
     transport: http("https://mainnet.base.org"),
   });
 
-  // Init Farcaster SDK + get wallet address
   useEffect(() => {
     const init = async () => {
       try {
         await sdk.actions.ready();
-        const provider = sdk.wallet.ethProvider;
-        const accounts = await provider.request({ method: "eth_requestAccounts" }) as string[];
-        if (accounts?.[0]) {
-          setAddress(accounts[0] as `0x${string}`);
-        }
+        const accounts = await sdk.wallet.ethProvider.request({
+          method: "eth_requestAccounts"
+        }) as string[];
+        if (accounts?.[0]) setAddress(accounts[0] as `0x${string}`);
       } catch (e) {
-        setError("Could not connect wallet. Open inside Farcaster.");
+        setError("Please open inside Farcaster.");
       } finally {
         setLoading(false);
       }
@@ -51,67 +52,66 @@ export default function DepositPage() {
     init();
   }, []);
 
-  // Load balance
   useEffect(() => {
     if (!address) return;
-    const loadBalance = async () => {
-      try {
-        const bal = await publicClient.readContract({
-          address: USDC_ADDRESS, abi: USDC_ABI,
-          functionName: "balanceOf", args: [address],
-        });
-        setBalance(Number(bal) / 1e6);
-      } catch (e) { console.error(e); }
-    };
-    loadBalance();
+    publicClient.readContract({
+      address: USDC_ADDRESS, abi: USDC_ABI,
+      functionName: "balanceOf", args: [address],
+    }).then((bal) => setBalance(Number(bal) / 1e6)).catch(console.error);
   }, [address]);
 
-  // Check allowance
   useEffect(() => {
     if (!address || !amount) return;
-    const checkAllowance = async () => {
-      try {
-        const allowance = await publicClient.readContract({
-          address: USDC_ADDRESS, abi: USDC_ABI,
-          functionName: "allowance", args: [address, CONTRACT_ADDRESS],
-        });
-        const amountInWei = parseUnits(amount, 6);
-        setNeedsApproval(allowance < amountInWei);
-      } catch (e) { console.error(e); }
-    };
-    checkAllowance();
+    try {
+      publicClient.readContract({
+        address: USDC_ADDRESS, abi: USDC_ABI,
+        functionName: "allowance", args: [address, CONTRACT_ADDRESS],
+      }).then((allowance) => {
+        setNeedsApproval(allowance < parseUnits(amount, 6));
+      }).catch(console.error);
+    } catch (e) { console.error(e); }
   }, [address, amount]);
 
-  const getWalletClient = () => {
-    return createWalletClient({
-      chain: base,
-      transport: custom(sdk.wallet.ethProvider),
-    });
+  const switchToBase = async () => {
+    try {
+      await sdk.wallet.ethProvider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x2105" }],
+      });
+    } catch (e) { console.log("Chain switch:", e); }
   };
+
+  const getWalletClient = () => createWalletClient({
+    chain: base,
+    transport: custom(sdk.wallet.ethProvider),
+  });
 
   const handleApprove = async () => {
     if (!address) return;
     setIsPending(true);
+    setStep("approving");
     setError("");
     try {
+      await switchToBase();
       const walletClient = getWalletClient();
       const amountInWei = parseUnits(amount, 6);
-      await walletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: USDC_ADDRESS, abi: USDC_ABI,
-        functionName: "approve", args: [CONTRACT_ADDRESS, amountInWei],
+        functionName: "approve",
+        args: [CONTRACT_ADDRESS, amountInWei],
         account: address,
       });
-      setTimeout(async () => {
-        const allowance = await publicClient.readContract({
-          address: USDC_ADDRESS, abi: USDC_ABI,
-          functionName: "allowance", args: [address, CONTRACT_ADDRESS],
-        });
-        setNeedsApproval(allowance < parseUnits(amount, 6));
-        setIsPending(false);
-      }, 3000);
+      await publicClient.waitForTransactionReceipt({ hash });
+      const newAllowance = await publicClient.readContract({
+        address: USDC_ADDRESS, abi: USDC_ABI,
+        functionName: "allowance", args: [address, CONTRACT_ADDRESS],
+      });
+      setNeedsApproval(newAllowance < parseUnits(amount, 6));
     } catch (e: any) {
-      setError(e.message || "Approval failed");
+      setError(e.message?.includes("rejected") ? "Transaction cancelled" : "Approval failed");
+    } finally {
       setIsPending(false);
+      setStep("idle");
     }
   };
 
@@ -119,124 +119,332 @@ export default function DepositPage() {
     if (!address) return;
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) { setError("Enter valid amount"); return; }
-    if (balance === null || numAmount > balance) { setError(`Insufficient balance. You have ${balance?.toFixed(4) || "0"} USDC`); return; }
-
+    if (balance === null || numAmount > balance) {
+      setError(`Insufficient balance. You have ${balance?.toFixed(2) || "0"} USDC`);
+      return;
+    }
     setIsPending(true);
+    setStep("depositing");
     setError("");
     try {
+      await switchToBase();
       const walletClient = getWalletClient();
-      const amountInWei = parseUnits(amount, 6);
       const hash = await walletClient.writeContract({
         address: CONTRACT_ADDRESS, abi: CONTRACT_ABI,
-        functionName: "deposit", args: [amountInWei],
+        functionName: "deposit",
+        args: [parseUnits(amount, 6)],
         account: address,
       });
-
       try {
         await fetch("https://xtaskai.com/base-mini-app/api/update_balance.php", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet: address, amount: parseFloat(amount), tx_hash: hash }),
+          body: JSON.stringify({ wallet: address, amount: numAmount, tx_hash: hash }),
         });
       } catch (e) { console.log("API error:", e); }
-
-      alert(`✅ Deposit successful! ${amount} USDC added`);
-      window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}&tx=${hash}`;
+      setStep("done");
+      setTimeout(() => {
+        window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}&tx=${hash}`;
+      }, 1500);
     } catch (e: any) {
-      setError(e.message?.includes("rejected") ? "Transaction cancelled" : e.message || "Transaction failed");
+      setError(e.message?.includes("rejected") ? "Transaction cancelled" : "Transaction failed");
+      setStep("idle");
+    } finally {
       setIsPending(false);
     }
   };
 
+  // Loading screen
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
-        <p className="text-white text-lg">Connecting wallet...</p>
+      <div style={styles.bg}>
+        <div style={styles.card}>
+          <div style={styles.logo}>⬡</div>
+          <p style={styles.loadingText}>Connecting wallet...</p>
+          <div style={styles.spinner} />
+        </div>
       </div>
     );
   }
 
+  // Not in Farcaster
   if (!address) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
-        <div className="text-center px-6">
-          <h1 className="text-3xl font-bold text-white mb-4">XTASKAI</h1>
-          <p className="text-white/70">{error || "Please open inside Farcaster."}</p>
+      <div style={styles.bg}>
+        <div style={styles.card}>
+          <div style={styles.logo}>⬡</div>
+          <h1 style={styles.title}>XTaskAI</h1>
+          <p style={{ color: "#a78bfa", marginTop: 8 }}>{error || "Open inside Farcaster."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Success
+  if (step === "done") {
+    return (
+      <div style={styles.bg}>
+        <div style={styles.card}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>✅</div>
+          <h2 style={styles.title}>Deposit Successful!</h2>
+          <p style={{ color: "#a78bfa", marginTop: 8 }}>Redirecting to dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
-      <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-8 w-96">
-        <h1 className="text-2xl font-bold text-white text-center mb-6">Deposit USDC</h1>
+    <div style={styles.bg}>
+      {/* Decorative blobs */}
+      <div style={styles.blob1} />
+      <div style={styles.blob2} />
 
-        <div className="bg-black/30 rounded-xl p-4 mb-6">
-          <div className="text-white/70 text-sm">Connected Wallet</div>
-          <div className="text-white font-mono text-sm">{address?.slice(0, 8)}...{address?.slice(-6)}</div>
-          <div className="flex justify-between mt-3">
-            <span className="text-white/70">USDC Balance:</span>
-            <span className="text-green-400 font-bold">
-              {balance !== null ? `${balance.toFixed(4)} USDC` : "Loading..."}
-            </span>
+      <div style={styles.card}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: "#fff", margin: 0 }}>Deposit USDC</h1>
+            <p style={{ fontSize: 12, color: "#7c3aed", margin: 0, marginTop: 2 }}>Base Network</p>
+          </div>
+          <div style={styles.badge}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80", display: "inline-block", marginRight: 6 }} />
+            Connected
           </div>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-white mb-2">Amount (USDC)</label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            step="0.0001"
-            min="0.0001"
-            className="w-full bg-black/30 border border-white/20 rounded-xl px-4 py-3 text-white text-lg"
-          />
-          <div className="grid grid-cols-4 gap-2 mt-3">
-            {[0.0001, 0.001, 0.01, 0.1].map((v) => (
-              <button
-                key={v}
-                onClick={() => setAmount(v.toString())}
-                className="bg-white/10 hover:bg-white/20 rounded-lg py-2 text-sm text-white transition"
-              >
-                {v}
-              </button>
-            ))}
+        {/* Wallet info */}
+        <div style={styles.walletBox}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <p style={{ fontSize: 11, color: "#7c3aed", margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Wallet</p>
+              <p style={{ fontSize: 13, color: "#e2d9f3", margin: 0, marginTop: 2, fontFamily: "monospace" }}>
+                {address?.slice(0, 6)}...{address?.slice(-4)}
+              </p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: 11, color: "#7c3aed", margin: 0, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>USDC Balance</p>
+              <p style={{ fontSize: 20, color: "#4ade80", margin: 0, marginTop: 2, fontWeight: 800 }}>
+                {balance !== null ? `$${balance.toFixed(2)}` : "—"}
+              </p>
+            </div>
           </div>
         </div>
 
+        {/* Amount input */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, color: "#a78bfa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 8 }}>
+            Amount (USDC)
+          </label>
+          <div style={styles.inputWrapper}>
+            <span style={{ color: "#7c3aed", fontSize: 20, fontWeight: 700, paddingLeft: 16 }}>$</span>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              step="0.01"
+              min="0.01"
+              style={styles.input}
+              placeholder="0.00"
+            />
+            <span style={{ color: "#7c3aed", fontSize: 13, fontWeight: 700, paddingRight: 16 }}>USDC</span>
+          </div>
+        </div>
+
+        {/* Quick amounts */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
+          {QUICK_AMOUNTS.map((v) => (
+            <button
+              key={v}
+              onClick={() => setAmount(v.toString())}
+              style={{
+                ...styles.quickBtn,
+                background: amount === v.toString() ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.05)",
+                borderColor: amount === v.toString() ? "#7c3aed" : "rgba(255,255,255,0.1)",
+              }}
+            >
+              ${v}
+            </button>
+          ))}
+        </div>
+
+        {/* Error */}
         {error && (
-          <div className="bg-red-500/20 border border-red-500 rounded-xl p-3 mb-4">
-            <p className="text-red-400 text-sm">{error}</p>
+          <div style={styles.errorBox}>
+            ⚠️ {error}
           </div>
         )}
 
+        {/* Approve button */}
         {needsApproval && (
           <button
             onClick={handleApprove}
             disabled={isPending}
-            className="w-full bg-yellow-500 text-white font-bold py-3 rounded-xl disabled:opacity-50 hover:opacity-90 transition mb-3"
+            style={{ ...styles.btn, background: isPending ? "#4b2d8a" : "linear-gradient(135deg, #f59e0b, #d97706)", marginBottom: 10, opacity: isPending ? 0.7 : 1 }}
           >
-            {isPending ? "Approving..." : "🔓 Approve USDC"}
+            {step === "approving" ? "⏳ Approving USDC..." : "🔓 Approve USDC First"}
           </button>
         )}
 
+        {/* Deposit button */}
         <button
           onClick={handleDeposit}
           disabled={isPending || balance === null || needsApproval}
-          className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-3 rounded-xl disabled:opacity-50 hover:opacity-90 transition"
+          style={{ ...styles.btn, background: (isPending || needsApproval) ? "#2d1b69" : "linear-gradient(135deg, #7c3aed, #4f46e5)", opacity: (isPending || needsApproval) ? 0.6 : 1 }}
         >
-          {isPending ? "Processing..." : "💎 Deposit USDC"}
+          {step === "depositing" ? "⏳ Processing..." : "💎 Deposit USDC"}
         </button>
 
+        {/* Back */}
         <button
           onClick={() => window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}`}
-          className="w-full mt-3 bg-white/10 hover:bg-white/20 rounded-xl py-2 text-sm text-white transition"
+          style={styles.backBtn}
         >
-          ← Back
+          ← Back to Dashboard
         </button>
       </div>
     </div>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  bg: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "linear-gradient(135deg, #0f0a1e 0%, #1a0a2e 50%, #0d0d1a 100%)",
+    padding: 16,
+    position: "relative",
+    overflow: "hidden",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  },
+  blob1: {
+    position: "absolute", top: -100, right: -100,
+    width: 300, height: 300, borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)",
+    pointerEvents: "none",
+  },
+  blob2: {
+    position: "absolute", bottom: -100, left: -100,
+    width: 300, height: 300, borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(79,70,229,0.2) 0%, transparent 70%)",
+    pointerEvents: "none",
+  },
+  card: {
+    background: "rgba(255,255,255,0.04)",
+    backdropFilter: "blur(20px)",
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+    maxWidth: 380,
+    border: "1px solid rgba(124,58,237,0.2)",
+    boxShadow: "0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)",
+    position: "relative",
+    zIndex: 1,
+    textAlign: "center" as const,
+  },
+  walletBox: {
+    background: "rgba(124,58,237,0.08)",
+    border: "1px solid rgba(124,58,237,0.2)",
+    borderRadius: 16,
+    padding: "14px 16px",
+    marginBottom: 20,
+  },
+  inputWrapper: {
+    display: "flex",
+    alignItems: "center",
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(124,58,237,0.3)",
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  input: {
+    flex: 1,
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: 700,
+    padding: "14px 12px",
+    width: "100%",
+  },
+  quickBtn: {
+    border: "1px solid",
+    borderRadius: 10,
+    padding: "8px 4px",
+    color: "#a78bfa",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.15s",
+  },
+  btn: {
+    width: "100%",
+    padding: "16px",
+    borderRadius: 16,
+    border: "none",
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: 700,
+    cursor: "pointer",
+    display: "block",
+    letterSpacing: "0.02em",
+  },
+  backBtn: {
+    width: "100%",
+    marginTop: 10,
+    padding: "12px",
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "transparent",
+    color: "#6b7280",
+    fontSize: 14,
+    cursor: "pointer",
+  },
+  errorBox: {
+    background: "rgba(239,68,68,0.1)",
+    border: "1px solid rgba(239,68,68,0.3)",
+    borderRadius: 12,
+    padding: "10px 14px",
+    color: "#f87171",
+    fontSize: 13,
+    marginBottom: 12,
+    textAlign: "left" as const,
+  },
+  badge: {
+    background: "rgba(74,222,128,0.1)",
+    border: "1px solid rgba(74,222,128,0.2)",
+    borderRadius: 20,
+    padding: "4px 12px",
+    color: "#4ade80",
+    fontSize: 12,
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+  },
+  logo: {
+    fontSize: 48,
+    marginBottom: 8,
+    color: "#7c3aed",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 800,
+    color: "#fff",
+    margin: 0,
+  },
+  loadingText: {
+    color: "#a78bfa",
+    marginTop: 12,
+  },
+  spinner: {
+    width: 32,
+    height: 32,
+    border: "3px solid rgba(124,58,237,0.2)",
+    borderTop: "3px solid #7c3aed",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+    margin: "16px auto 0",
+  },
+};
