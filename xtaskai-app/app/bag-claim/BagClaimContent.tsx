@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useConnect } from "wagmi";
-import { parseUnits } from "viem";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { createPublicClient, createWalletClient, custom, parseUnits, encodeFunctionData } from "viem";
+import { base } from "viem/chains";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
@@ -43,166 +43,182 @@ const CONTRACT_ABI = [
 
 export default function BagClaimContent() {
   const searchParams = useSearchParams();
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-  
-  // Separate write contracts for approve and deposit
-  const { writeContractAsync: approveContract, data: approveHash, isPending: isApprovePending } = useWriteContract();
-  const { writeContractAsync: depositContract, data: depositHash, isPending: isDepositPending } = useWriteContract();
-  
-  // Separate wait for transactions
-  const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
-  const { isLoading: isDepositConfirming, isSuccess: isDepositConfirmed } = useWaitForTransactionReceipt({ hash: depositHash });
-  
+
   const day = searchParams.get("day") || "0";
   const fee = searchParams.get("fee") || "0.01";
   const xtp = searchParams.get("xtp") || "100";
-  
-  const [status, setStatus] = useState<"idle" | "approving" | "depositing" | "success" | "error">("idle");
+
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [status, setStatus] = useState<"connecting" | "idle" | "approving" | "depositing" | "success" | "error">("connecting");
   const [errorMsg, setErrorMsg] = useState("");
-  const [needsApproval, setNeedsApproval] = useState(false);
+  const [needsApproval, setNeedsApproval] = useState(true);
+  const providerRef = useRef<any>(null);
 
-  const amountInWei = parseUnits(fee, 6);
+  const amountInUnits = parseUnits(fee, 6);
 
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: USDC_ADDRESS,
-    abi: USDC_ABI,
-    functionName: "allowance",
-    args: address ? [address, CONTRACT_ADDRESS] : undefined,
-    query: { enabled: !!address },
-  });
-
+  // Auto-connect on mount
   useEffect(() => {
-    if (allowance !== undefined) {
-      setNeedsApproval(allowance < amountInWei);
-    }
-  }, [allowance, amountInWei]);
+    connectWallet();
+  }, []);
 
-  // Auto redirect to MetaMask on mobile
-  useEffect(() => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile && !isConnected) {
-      const currentUrl = window.location.href;
-      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
-      window.location.href = metaMaskUrl;
-    }
-  }, [isConnected]);
-
-  const handleConnect = () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      const currentUrl = window.location.href;
-      const metaMaskUrl = `https://metamask.app.link/dapp/${currentUrl.replace('https://', '')}`;
-      window.location.href = metaMaskUrl;
-    } else {
-      const connector = connectors.find(c => c.id === 'injected');
-      if (connector) connect({ connector });
-    }
-  };
-
-  const handleApprove = async () => {
-    setStatus("approving");
-    setErrorMsg("");
-    
+  async function connectWallet() {
     try {
-      await approveContract({
+      setStatus("connecting");
+      const sdk = (await import("@farcaster/frame-sdk")).default;
+      await sdk.actions.ready();
+      const provider = sdk.wallet.ethProvider;
+      providerRef.current = provider;
+
+      const accounts: string[] = await provider.request({ method: "eth_requestAccounts" });
+      if (!accounts || accounts.length === 0) throw new Error("No wallet found");
+
+      setWalletAddress(accounts[0]);
+      await checkAllowance(accounts[0], provider);
+      setStatus("idle");
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Failed to connect wallet");
+      setStatus("error");
+    }
+  }
+
+  async function checkAllowance(owner: string, provider: any) {
+    try {
+      const publicClient = createPublicClient({ chain: base, transport: custom(provider) });
+      const allowance = await publicClient.readContract({
         address: USDC_ADDRESS,
         abi: USDC_ABI,
-        functionName: "approve",
-        args: [CONTRACT_ADDRESS, amountInWei],
+        functionName: "allowance",
+        args: [owner as `0x${string}`, CONTRACT_ADDRESS as `0x${string}`],
       });
-      
-    } catch (error: any) {
+      setNeedsApproval(allowance < amountInUnits);
+    } catch {
+      setNeedsApproval(true);
+    }
+  }
+
+  async function switchToBase() {
+    try {
+      await providerRef.current.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x2105" }],
+      });
+    } catch (err: any) {
+      if (err.code === 4902) {
+        await providerRef.current.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: "0x2105",
+            chainName: "Base",
+            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://mainnet.base.org"],
+            blockExplorerUrls: ["https://basescan.org"],
+          }],
+        });
+      } else throw err;
+    }
+  }
+
+  async function handleApprove() {
+    if (!walletAddress || !providerRef.current) return;
+    setStatus("approving");
+    setErrorMsg("");
+    try {
+      await switchToBase();
+      const walletClient = createWalletClient({ chain: base, transport: custom(providerRef.current) });
+      const publicClient = createPublicClient({ chain: base, transport: custom(providerRef.current) });
+
+      const tx = await walletClient.sendTransaction({
+        account: walletAddress as `0x${string}`,
+        to: USDC_ADDRESS as `0x${string}`,
+        data: encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: "approve",
+          args: [CONTRACT_ADDRESS as `0x${string}`, amountInUnits],
+        }),
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+      setNeedsApproval(false);
+      setStatus("idle");
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Approval failed");
       setStatus("error");
-      setErrorMsg(error.message || "Approval failed");
     }
-  };
+  }
 
-  const handleDeposit = async () => {
-    if (!isConnected) {
-      setErrorMsg("Please connect your wallet first!");
-      return;
-    }
-
+  async function handleDeposit() {
+    if (!walletAddress || !providerRef.current) return;
     setStatus("depositing");
     setErrorMsg("");
-
     try {
-      await depositContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: "deposit",
-        args: [amountInWei],
-      });
-      
-    } catch (error: any) {
-      setStatus("error");
-      setErrorMsg(error.message || "Transaction failed");
-    }
-  };
+      await switchToBase();
+      const walletClient = createWalletClient({ chain: base, transport: custom(providerRef.current) });
+      const publicClient = createPublicClient({ chain: base, transport: custom(providerRef.current) });
 
-  const registerClaim = async (txHash: string) => {
+      const tx = await walletClient.sendTransaction({
+        account: walletAddress as `0x${string}`,
+        to: CONTRACT_ADDRESS as `0x${string}`,
+        data: encodeFunctionData({
+          abi: CONTRACT_ABI,
+          functionName: "deposit",
+          args: [amountInUnits],
+        }),
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+      await registerClaim(tx);
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Transaction failed");
+      setStatus("error");
+    }
+  }
+
+  async function registerClaim(txHash: string) {
     try {
       const res = await fetch("https://xtaskai.com/base-mini-app/api/bag_claim.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_wallet: address,
+          user_wallet: walletAddress,
           day: parseInt(day),
           fee: parseFloat(fee),
           xtp: parseInt(xtp),
-          tx_hash: txHash
-        })
+          tx_hash: txHash,
+        }),
       });
-
       const data = await res.json();
-      
       if (data.success) {
         setStatus("success");
         setTimeout(() => {
-          window.location.href = `https://xtaskai.com/base-mini-app/quests.php?success=Bag+${parseInt(day)+1}+claimed!+${xtp}+XTP`;
+          window.location.href = `https://xtaskai.com/base-mini-app/quests.php?success=Bag+${parseInt(day) + 1}+claimed!+${xtp}+XTP`;
         }, 2000);
       } else {
-        setStatus("error");
         setErrorMsg(data.error || "Failed to claim bag");
+        setStatus("error");
       }
-    } catch (error) {
+    } catch {
+      setErrorMsg("Failed to register claim");
       setStatus("error");
-      setErrorMsg("Failed to claim bag");
     }
-  };
+  }
 
-  // ✅ শুধুমাত্র Deposit Transaction成功后 register করবে
-  useEffect(() => {
-    if (isDepositConfirmed && depositHash) {
-      registerClaim(depositHash);
-    }
-  }, [isDepositConfirmed, depositHash]);
+  const bagNames = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ruby", "Legendary"];
+  const bagIcons = ["🥉", "🥈", "🥇", "💎", "💎", "🔴", "👑"];
+  const dayNum = parseInt(day);
 
-  // ✅ Approve成功后 allowance refetch করে status update
-  useEffect(() => {
-    if (isApproveConfirmed) {
-      refetchAllowance();
-      setStatus("idle");
-    }
-  }, [isApproveConfirmed, refetchAllowance]);
-
-  if (!isConnected) {
+  // Connecting state
+  if (status === "connecting") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-5xl mb-4">🎁</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Connect Wallet</h2>
-          <p className="text-gray-500 mb-6">Connect your wallet to claim bag</p>
-          <button onClick={handleConnect} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition">
-            Connect Wallet
-          </button>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4" />
+          <p className="text-gray-500">Connecting wallet...</p>
         </div>
       </div>
     );
   }
 
+  // Success state
   if (status === "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -215,10 +231,6 @@ export default function BagClaimContent() {
       </div>
     );
   }
-
-  const bagNames = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ruby", "Legendary"];
-  const bagIcons = ["🥉", "🥈", "🥇", "💎", "💎", "🔴", "👑"];
-  const dayNum = parseInt(day);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -241,46 +253,45 @@ export default function BagClaimContent() {
           <div className="flex justify-between mt-2">
             <span className="text-gray-500">Your Wallet:</span>
             <span className="font-mono text-sm text-gray-600">
-              {address?.slice(0, 8)}...{address?.slice(-6)}
+              {walletAddress ? `${walletAddress.slice(0, 8)}...${walletAddress.slice(-6)}` : "—"}
             </span>
           </div>
         </div>
 
-        {status === "error" && (
+        {status === "error" && errorMsg && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
             <p className="text-red-600 text-sm">{errorMsg}</p>
+            <button onClick={connectWallet} className="text-blue-500 text-xs mt-1 underline">
+              Retry connection
+            </button>
           </div>
         )}
 
         {needsApproval ? (
           <button
             onClick={handleApprove}
-            disabled={isApprovePending || status === "approving" || isApproveConfirming}
+            disabled={status === "approving"}
             className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50"
           >
-            {status === "approving" || isApprovePending || isApproveConfirming ? (
+            {status === "approving" ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Approving...
               </span>
-            ) : (
-              "Approve USDC"
-            )}
+            ) : "Approve USDC"}
           </button>
         ) : (
           <button
             onClick={handleDeposit}
-            disabled={isDepositPending || status === "depositing" || isDepositConfirming}
+            disabled={status === "depositing"}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50"
           >
-            {status === "depositing" || isDepositPending || isDepositConfirming ? (
+            {status === "depositing" ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Processing...
               </span>
-            ) : (
-              `Pay $${fee} USDC & Claim Bag`
-            )}
+            ) : `Pay $${fee} USDC & Claim Bag`}
           </button>
         )}
 
