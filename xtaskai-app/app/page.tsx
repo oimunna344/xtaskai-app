@@ -1,67 +1,54 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAccount, useConnect } from "wagmi";
+import { injected } from "wagmi/connectors";
+import sdk from "@farcaster/frame-sdk";
 
 export default function Home() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
+  const { connect } = useConnect();
 
-  const [isFarcaster, setIsFarcaster] = useState(false);
-
+  // Farcaster SDK ready + auto-connect
   useEffect(() => {
-    if (typeof window !== "undefined" && window.parent !== window) {
-      setIsFarcaster(true);
-    }
+    const init = async () => {
+      try {
+        await sdk.actions.ready();
+        // Auto-connect wallet
+        if (!isConnected) {
+          connect({ connector: injected() });
+        }
+      } catch (e) {
+        console.error("SDK error:", e);
+      }
+    };
+    init();
   }, []);
 
+  // Redirect when connected
   useEffect(() => {
     if (isConnected && address) {
-      const url = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}`;
-
-      if (isFarcaster) {
-        window.open(url, "_blank");
-      } else {
-        window.location.href = url;
-      }
+      window.location.href = `https://xtaskai.com/base-mini-app/dashboard.php?wallet=${address}`;
     }
-  }, [isConnected, address, isFarcaster]);
-
-  const handleConnect = () => {
-    if (isFarcaster) {
-      alert("Farcaster wallet auto ব্যবহার হবে");
-      return;
-    }
-
-    if (connectors && connectors.length > 0) {
-      connect({ connector: connectors[0] });
-    } else {
-      alert("No wallet found");
-    }
-  };
+  }, [isConnected, address]);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#0a0f1e",
-        color: "white",
-      }}
-    >
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#0a0f1e",
+      color: "white",
+      fontFamily: "Arial, sans-serif",
+    }}>
       <div style={{ textAlign: "center" }}>
-        <h1>XTaskAI</h1>
-        <p>Earn USDC on Base</p>
-
-        {!isConnected && (
-          <button onClick={handleConnect}>
-            {isFarcaster ? "Use Farcaster Wallet" : "Connect Wallet"}
-          </button>
-        )}
-
-        {isConnected && <p>Redirecting...</p>}
+        <h1 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>XTaskAI</h1>
+        <p style={{ color: "#888", marginBottom: "2rem" }}>Earn USDC on Base</p>
+        {isConnected
+          ? <p style={{ color: "#4ade80" }}>✅ Redirecting...</p>
+          : <p style={{ color: "#888" }}>Connecting wallet...</p>
+        }
       </div>
     </div>
   );
