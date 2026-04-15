@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@farcaster/frame-sdk": "^0.2.0",
+    "@farcaster/frame-wagmi-connector": "^2.0.0",
     "@heroicons/react": "^2.2.0",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "ox": "^0.14.9"

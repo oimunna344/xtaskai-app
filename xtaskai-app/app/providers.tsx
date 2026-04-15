@@ -4,12 +4,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { base } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
+import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
 
 const queryClient = new QueryClient();
 
 const config = createConfig({
   chains: [base],
-  connectors: typeof window !== "undefined" ? [injected()] : [],
+  connectors: typeof window !== "undefined" 
+    ? [farcasterFrame(), injected()] 
+    : [],
   transports: {
     [base.id]: http("https://mainnet.base.org"),
   },
