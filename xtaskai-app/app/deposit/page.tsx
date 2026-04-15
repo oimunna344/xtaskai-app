@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount, useConnect, useWriteContract, useReadContract } from "wagmi";
 import { parseUnits } from "viem";
 import { injected } from "wagmi/connectors";
+import sdk from "@farcaster/frame-sdk";
 
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -36,12 +37,14 @@ const CONTRACT_ABI = [
 
 export default function DepositPage() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
+  const { connect } = useConnect();
 
   const [amount, setAmount] = useState("0.001");
   const [error, setError] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
+  const [isInFarcaster, setIsInFarcaster] = useState(false);
+  const [connecting, setConnecting] = useState(true);
 
   const { writeContract: writeApprove, isPending: isApprovePending } = useWriteContract();
   const { writeContract: writeDeposit, isPending: isDepositPending } = useWriteContract();
@@ -62,12 +65,27 @@ export default function DepositPage() {
     query: { enabled: !!address },
   });
 
-  // Farcaster-এ খুললে auto-connect
+  // Farcaster detect + auto-connect
   useEffect(() => {
-    if (!isConnected && typeof window !== "undefined" && window.parent !== window) {
-      connect({ connector: injected() });
-    }
-  }, [isConnected, connect]);
+    const init = async () => {
+      try {
+        if (typeof window !== "undefined" && window.parent !== window) {
+          setIsInFarcaster(true);
+          const context = await sdk.context;
+          await sdk.actions.ready();
+
+          if (context?.user?.fid && !isConnected) {
+            connect({ connector: injected() });
+          }
+        }
+      } catch (e) {
+        console.error("Farcaster init error:", e);
+      } finally {
+        setConnecting(false);
+      }
+    };
+    init();
+  }, []);
 
   useEffect(() => {
     if (usdcBalance !== undefined) {
@@ -132,17 +150,38 @@ export default function DepositPage() {
     });
   };
 
+  // Loading
+  if (connecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
+        <div className="text-center text-white">
+          <p className="text-lg">Connecting wallet...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not connected
   if (!isConnected) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-500">
         <div className="text-center px-6">
           <h1 className="text-3xl font-bold text-white mb-8">XTASKAI</h1>
-          <button
-            onClick={() => connect({ connector: injected() })}
-            className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-lg transition w-full block"
-          >
-            🔌 Connect Wallet
-          </button>
+          {isInFarcaster ? (
+            <button
+              onClick={() => connect({ connector: injected() })}
+              className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-lg transition w-full block"
+            >
+              🟣 Connect Farcaster Wallet
+            </button>
+          ) : (
+            <button
+              onClick={() => connect({ connector: injected() })}
+              className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-lg transition w-full block"
+            >
+              🦊 Connect Wallet
+            </button>
+          )}
         </div>
       </div>
     );
