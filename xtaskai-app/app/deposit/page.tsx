@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useWriteContract, useReadContract } from "wagmi";
 import { parseUnits } from "viem";
-import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
 import { injected } from "wagmi/connectors";
 
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
@@ -37,7 +36,7 @@ const CONTRACT_ABI = [
 
 export default function DepositPage() {
   const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
+  const { connect, connectors } = useConnect();
 
   const [amount, setAmount] = useState("0.001");
   const [error, setError] = useState("");
@@ -66,7 +65,7 @@ export default function DepositPage() {
   // Farcaster-এ খুললে auto-connect
   useEffect(() => {
     if (!isConnected && typeof window !== "undefined" && window.parent !== window) {
-      connect({ connector: farcasterFrame() });
+      connect({ connector: injected() });
     }
   }, [isConnected, connect]);
 
@@ -139,16 +138,10 @@ export default function DepositPage() {
         <div className="text-center px-6">
           <h1 className="text-3xl font-bold text-white mb-8">XTASKAI</h1>
           <button
-            onClick={() => connect({ connector: farcasterFrame() })}
-            className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-lg transition mb-3 w-full block"
-          >
-            🟣 Connect Farcaster Wallet
-          </button>
-          <button
             onClick={() => connect({ connector: injected() })}
-            className="bg-white/20 text-white px-8 py-3 rounded-full font-semibold hover:shadow-lg transition w-full block"
+            className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-lg transition w-full block"
           >
-            🦊 Connect MetaMask
+            🔌 Connect Wallet
           </button>
         </div>
       </div>

@@ -1,32 +1,27 @@
 "use client";
 
-import { useEffect } from "react";
-import sdk from "@farcaster/frame-sdk";
-import { useConnect, useAccount } from "wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiProvider, createConfig, http } from "wagmi";
+import { base } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
-export default function FarcasterProvider({ children }: any) {
-  const { connect } = useConnect();
-  const { isConnected } = useAccount();
+const queryClient = new QueryClient();
 
-  useEffect(() => {
-    const init = async () => {
-      if (window.parent !== window) {
-        try {
-          await sdk.actions.ready();
-          console.log("✅ Farcaster ready");
+const config = createConfig({
+  chains: [base],
+  connectors: typeof window !== "undefined" ? [injected()] : [],
+  transports: {
+    [base.id]: http("https://mainnet.base.org"),
+  },
+  ssr: false,
+});
 
-          // Farcaster-এ injected wallet auto-connect করে
-          if (!isConnected) {
-            connect({ connector: injected() });
-          }
-        } catch (e) {
-          console.error("Farcaster error:", e);
-        }
-      }
-    };
-    init();
-  }, []);
-
-  return children;
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
 }
