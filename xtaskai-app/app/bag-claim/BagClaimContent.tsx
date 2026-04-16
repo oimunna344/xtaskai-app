@@ -3,10 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { parseUnits } from "viem";
-import {
-  getFarcasterProvider, getAccounts, switchToBase,
-  waitForTx, checkAllowance, approveUSDC, depositUSDC
-} from "@/app/lib/farcaster-wallet";
+import { getFarcasterProvider, getAccounts, switchToBase, waitForTx, checkAllowance, approveUSDC, depositUSDC } from "../lib/farcaster-wallet";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
@@ -33,7 +30,7 @@ export default function BagClaimContent() {
       providerRef.current = provider;
       const address = await getAccounts(provider);
       setWalletAddress(address);
-      const needs = await checkAllowance(provider, address, CONTRACT_ADDRESS, USDC_ADDRESS, amountInUnits);
+      const needs = await checkAllowance(address, CONTRACT_ADDRESS, USDC_ADDRESS, amountInUnits);
       setNeedsApproval(needs);
       setStatus("idle");
     } catch (err: any) {
@@ -48,7 +45,7 @@ export default function BagClaimContent() {
     try {
       await switchToBase(providerRef.current);
       const txHash = await approveUSDC(providerRef.current, walletAddress, USDC_ADDRESS, CONTRACT_ADDRESS, amountInUnits);
-      await waitForTx(providerRef.current, txHash);
+      await waitForTx(txHash);
       setNeedsApproval(false);
       setStatus("idle");
     } catch (err: any) {
@@ -63,7 +60,7 @@ export default function BagClaimContent() {
     try {
       await switchToBase(providerRef.current);
       const txHash = await depositUSDC(providerRef.current, walletAddress, CONTRACT_ADDRESS, amountInUnits);
-      await waitForTx(providerRef.current, txHash);
+      await waitForTx(txHash);
       await registerClaim(txHash);
     } catch (err: any) {
       setErrorMsg(err?.message || "Transaction failed");
@@ -118,25 +115,27 @@ export default function BagClaimContent() {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Claim {bagNames[dayNum]} Bag</h1>
           <p className="text-gray-500 mb-6">Day {dayNum + 1} Reward</p>
         </div>
-        <div className="bg-gray-50 rounded-xl p-4 mb-6">
-          <div className="flex justify-between mb-2"><span className="text-gray-500">Claim Fee:</span><span className="font-bold">${fee} USDC</span></div>
-          <div className="flex justify-between mb-2"><span className="text-gray-500">Reward:</span><span className="font-bold text-purple-600">+{xtp} XTP</span></div>
+        <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2">
+          <div className="flex justify-between border-b border-gray-100 pb-2"><span className="text-gray-500">Claim Fee:</span><span className="font-bold">${fee} USDC</span></div>
+          <div className="flex justify-between border-b border-gray-100 pb-2"><span className="text-gray-500">Reward:</span><span className="font-bold text-purple-600">+{xtp} XTP</span></div>
           <div className="flex justify-between"><span className="text-gray-500">Wallet:</span><span className="font-mono text-sm">{walletAddress?.slice(0,8)}...{walletAddress?.slice(-6)}</span></div>
         </div>
-        {status === "error" && <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-          <p className="text-red-600 text-sm">{errorMsg}</p>
-          <button onClick={connectWallet} className="text-blue-500 text-xs mt-1 underline">Retry</button>
-        </div>}
+        {status === "error" && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <p className="text-red-600 text-sm">{errorMsg}</p>
+            <button onClick={connectWallet} className="text-blue-500 text-xs mt-1 underline">Retry</button>
+          </div>
+        )}
         {needsApproval ? (
-          <button onClick={handleApprove} disabled={status === "approving"} className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50">
+          <button onClick={handleApprove} disabled={status === "approving"} className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-xl disabled:opacity-50">
             {status === "approving" ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Approving...</span> : "Approve USDC"}
           </button>
         ) : (
-          <button onClick={handleDeposit} disabled={status === "depositing"} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50">
+          <button onClick={handleDeposit} disabled={status === "depositing"} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl disabled:opacity-50">
             {status === "depositing" ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Processing...</span> : `Pay $${fee} USDC & Claim Bag`}
           </button>
         )}
-        <button onClick={() => window.location.href = "https://xtaskai.com/base-mini-app/quests.php"} className="w-full mt-3 text-gray-500 text-sm py-2 hover:text-gray-700">Cancel</button>
+        <button onClick={() => window.location.href = "https://xtaskai.com/base-mini-app/quests.php"} className="w-full mt-3 text-gray-500 text-sm py-2">Cancel</button>
       </div>
     </div>
   );
