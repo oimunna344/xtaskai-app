@@ -33,8 +33,7 @@ export default function RedeemPayContent() {
       const address = await getAccounts(provider);
       setWalletAddress(address);
       const needs = await checkAllowance(address, CONTRACT_ADDRESS, USDC_ADDRESS, amountInUnits);
-      setNeedsApproval(needs);
-      setStatus("idle");
+      setNeedsApproval(needs); setStatus("idle");
     } catch (err: any) { setErrorMsg(err?.message || "Failed to connect"); setStatus("error"); }
   }
 
@@ -82,92 +81,95 @@ export default function RedeemPayContent() {
   }
 
   if (status === "connecting") return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-12 h-12 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"/>
-        <p className="text-gray-400 text-sm">Connecting wallet...</p>
-      </div>
+    <div style={s.bg}><div style={s.blob1}/><div style={s.blob2}/>
+      <div style={{...s.card,textAlign:"center"}}><div style={s.logo}>⬡</div><p style={{color:"#a78bfa",marginTop:12}}>Connecting wallet...</p><div style={s.spinner}/></div>
     </div>
   );
 
   if (status === "success") return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <div className="text-center">
-        <div className="text-7xl mb-6 animate-bounce">🎁</div>
-        <h2 className="text-3xl font-bold text-white mb-2">Reward Claimed!</h2>
-        <div className="flex items-center justify-center gap-3 mt-2">
-          {reward_usdc > 0 && <span className="text-2xl font-bold text-green-400">${reward_usdc} USDC</span>}
-          {reward_usdc > 0 && reward_xtp > 0 && <span className="text-gray-600">+</span>}
-          {reward_xtp > 0 && <span className="text-2xl font-bold text-yellow-400">{reward_xtp} XTP</span>}
+    <div style={s.bg}><div style={s.blob1}/><div style={s.blob2}/>
+      <div style={{...s.card,textAlign:"center"}}>
+        <div style={{fontSize:64,marginBottom:16}}>🎁</div>
+        <h2 style={s.title}>Reward Claimed!</h2>
+        <div style={{display:"flex",justifyContent:"center",gap:12,marginTop:12}}>
+          {reward_usdc>0&&<div style={{background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:12,padding:"8px 16px"}}><span style={{color:"#4ade80",fontWeight:800,fontSize:18}}>${reward_usdc} USDC</span></div>}
+          {reward_xtp>0&&<div style={{background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:12,padding:"8px 16px"}}><span style={{color:"#fbbf24",fontWeight:800,fontSize:18}}>{reward_xtp} XTP</span></div>}
         </div>
-        <p className="text-gray-600 text-sm mt-6">Redirecting...</p>
+        <p style={{color:"#4b5563",fontSize:13,marginTop:16}}>Redirecting...</p>
       </div>
     </div>
   );
 
   if (!code_id || !code) return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <div className="text-center w-full max-w-sm">
-        <div className="text-6xl mb-4">❌</div>
-        <h2 className="text-2xl font-bold text-white mb-2">No Redeem Data</h2>
-        <p className="text-gray-400 mb-6">Please go back and enter your code.</p>
-        <button onClick={() => window.location.href="https://xtaskai.com/base-mini-app/redeem.php"} className="w-full bg-white text-black font-bold py-4 rounded-2xl">Go Back</button>
+    <div style={s.bg}><div style={s.blob1}/><div style={s.blob2}/>
+      <div style={{...s.card,textAlign:"center"}}>
+        <div style={{fontSize:56,marginBottom:16}}>❌</div>
+        <h2 style={s.title}>No Redeem Data</h2>
+        <p style={{color:"#a78bfa",marginTop:8,marginBottom:20}}>Please go back and enter your code.</p>
+        <button onClick={()=>window.location.href="https://xtaskai.com/base-mini-app/redeem.php"} style={{...s.btn,background:"linear-gradient(135deg,#7c3aed,#4f46e5)"}}>← Go Back</button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        {/* Header */}
-        <div className="bg-gradient-to-b from-amber-900 to-gray-900 rounded-3xl p-8 mb-4 text-center border border-gray-800">
-          <div className="text-6xl mb-3">🎁</div>
-          <h1 className="text-2xl font-bold text-white">Claim Reward</h1>
-          <p className="text-gray-400 text-sm mt-1 font-mono">{code}</p>
-          <div className="mt-4 flex items-center justify-center gap-3">
-            {reward_usdc > 0 && (
-              <div className="bg-black/40 rounded-full px-4 py-2">
-                <span className="text-green-400 font-bold">${reward_usdc} USDC</span>
-              </div>
-            )}
-            {reward_xtp > 0 && (
-              <div className="bg-black/40 rounded-full px-4 py-2">
-                <span className="text-yellow-400 font-bold">{reward_xtp} XTP</span>
-              </div>
-            )}
+    <div style={s.bg}><div style={s.blob1}/><div style={s.blob2}/>
+      <div style={s.card}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+          <div>
+            <h1 style={{fontSize:20,fontWeight:800,color:"#fff",margin:0}}>🎁 Claim Reward</h1>
+            <p style={{fontSize:12,color:"#7c3aed",margin:0,marginTop:2,fontFamily:"monospace"}}>{code}</p>
+          </div>
+          <div style={s.badge}><span style={{width:8,height:8,borderRadius:"50%",background:"#4ade80",display:"inline-block",marginRight:6}}/>Connected</div>
+        </div>
+        <div style={s.walletBox}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div><p style={s.label}>Wallet</p><p style={s.mono}>{walletAddress?.slice(0,6)}...{walletAddress?.slice(-4)}</p></div>
+            <div style={{textAlign:"right",display:"flex",gap:8}}>
+              {reward_usdc>0&&<div><p style={s.label}>USDC</p><p style={{fontSize:16,color:"#4ade80",margin:0,fontWeight:800}}>${reward_usdc}</p></div>}
+              {reward_xtp>0&&<div><p style={s.label}>XTP</p><p style={{fontSize:16,color:"#fbbf24",margin:0,fontWeight:800}}>{reward_xtp}</p></div>}
+            </div>
           </div>
         </div>
-
-        {/* Info */}
-        <div className="bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-800">
-          <div className="flex justify-between items-center py-2 border-b border-gray-800">
-            <span className="text-gray-400 text-sm">Claim Fee</span>
-            <span className="text-white font-semibold">0.005 USDC</span>
+        <div style={s.infoBox}>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid rgba(124,58,237,0.15)"}}>
+            <span style={{color:"#a78bfa",fontSize:14}}>Claim Fee</span>
+            <span style={{color:"#fff",fontWeight:700}}>0.005 USDC</span>
           </div>
-          <div className="flex justify-between items-center py-2">
-            <span className="text-gray-400 text-sm">Wallet</span>
-            <span className="text-gray-300 font-mono text-xs">{walletAddress?.slice(0,6)}...{walletAddress?.slice(-4)}</span>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"10px 0"}}>
+            <span style={{color:"#a78bfa",fontSize:14}}>Network</span>
+            <span style={{color:"#4ade80",fontWeight:700}}>Base</span>
           </div>
         </div>
-
-        {status === "error" && (
-          <div className="bg-red-950 border border-red-800 rounded-2xl p-4 mb-4">
-            <p className="text-red-400 text-sm">{errorMsg}</p>
-            <button onClick={connectWallet} className="text-red-300 text-xs mt-2 underline">Retry</button>
-          </div>
-        )}
-
+        {status === "error" && errorMsg && <div style={s.errorBox}>⚠️ {errorMsg}<button onClick={connectWallet} style={{display:"block",color:"#f87171",fontSize:12,marginTop:6,background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>Retry</button></div>}
         {needsApproval ? (
-          <button onClick={handleApprove} disabled={status === "approving"} className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-2xl transition disabled:opacity-50 text-lg">
-            {status === "approving" ? <span className="flex items-center justify-center gap-2"><div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"/>Approving...</span> : "Approve USDC"}
+          <button onClick={handleApprove} disabled={status==="approving"} style={{...s.btn,background:status==="approving"?"#4b2d8a":"linear-gradient(135deg,#f59e0b,#d97706)",opacity:status==="approving"?0.7:1,marginBottom:10}}>
+            {status==="approving"?"⏳ Approving USDC...":"🔓 Approve USDC First"}
           </button>
         ) : (
-          <button onClick={handlePayFee} disabled={status === "depositing"} className="w-full bg-white hover:bg-gray-100 text-black font-bold py-4 rounded-2xl transition disabled:opacity-50 text-lg">
-            {status === "depositing" ? <span className="flex items-center justify-center gap-2"><div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"/>Processing...</span> : "Pay 0.005 USDC & Claim"}
+          <button onClick={handlePayFee} disabled={status==="depositing"} style={{...s.btn,background:status==="depositing"?"#2d1b69":"linear-gradient(135deg,#7c3aed,#4f46e5)",opacity:status==="depositing"?0.7:1}}>
+            {status==="depositing"?"⏳ Processing...":"💎 Pay 0.005 USDC & Claim"}
           </button>
         )}
-        <button onClick={() => window.location.href="https://xtaskai.com/base-mini-app/redeem.php"} className="w-full mt-3 text-gray-600 text-sm py-3 hover:text-gray-400 transition">Cancel</button>
+        <button onClick={()=>window.location.href="https://xtaskai.com/base-mini-app/redeem.php"} style={s.backBtn}>← Back to Redeem</button>
       </div>
     </div>
   );
 }
+
+const s: Record<string, React.CSSProperties> = {
+  bg:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#0f0a1e 0%,#1a0a2e 50%,#0d0d1a 100%)",padding:16,position:"relative",overflow:"hidden",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"},
+  blob1:{position:"absolute",top:-100,right:-100,width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(124,58,237,0.3) 0%,transparent 70%)",pointerEvents:"none"},
+  blob2:{position:"absolute",bottom:-100,left:-100,width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(79,70,229,0.2) 0%,transparent 70%)",pointerEvents:"none"},
+  card:{background:"rgba(255,255,255,0.04)",backdropFilter:"blur(20px)",borderRadius:24,padding:24,width:"100%",maxWidth:380,border:"1px solid rgba(124,58,237,0.2)",boxShadow:"0 25px 50px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.05)",position:"relative",zIndex:1},
+  walletBox:{background:"rgba(124,58,237,0.08)",border:"1px solid rgba(124,58,237,0.2)",borderRadius:16,padding:"14px 16px",marginBottom:16},
+  infoBox:{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(124,58,237,0.15)",borderRadius:16,padding:"0 16px",marginBottom:16},
+  label:{fontSize:11,color:"#7c3aed",margin:0,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"},
+  mono:{fontSize:13,color:"#e2d9f3",margin:0,marginTop:2,fontFamily:"monospace"},
+  btn:{width:"100%",padding:16,borderRadius:16,border:"none",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",display:"block",letterSpacing:"0.02em"},
+  backBtn:{width:"100%",marginTop:10,padding:12,borderRadius:12,border:"1px solid rgba(255,255,255,0.08)",background:"transparent",color:"#6b7280",fontSize:14,cursor:"pointer"},
+  errorBox:{background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:12,padding:"10px 14px",color:"#f87171",fontSize:13,marginBottom:12},
+  badge:{background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:20,padding:"4px 12px",color:"#4ade80",fontSize:12,fontWeight:600,display:"flex",alignItems:"center"},
+  logo:{fontSize:48,marginBottom:8,color:"#7c3aed"},
+  title:{fontSize:24,fontWeight:800,color:"#fff",margin:0},
+  spinner:{width:32,height:32,border:"3px solid rgba(124,58,237,0.2)",borderTop:"3px solid #7c3aed",borderRadius:"50%",animation:"spin 1s linear infinite",margin:"16px auto 0"},
+};
