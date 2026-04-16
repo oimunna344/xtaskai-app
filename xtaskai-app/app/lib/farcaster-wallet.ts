@@ -31,12 +31,13 @@ export async function switchToBase(provider: any) {
         }],
       });
     }
+    // ignore — Farcaster already on Base
   }
 }
 
 export async function waitForTx(txHash: string): Promise<void> {
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 2000));
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => setTimeout(r, 3000));
     try {
       const res = await fetch("https://mainnet.base.org", {
         method: "POST",
@@ -48,7 +49,7 @@ export async function waitForTx(txHash: string): Promise<void> {
         }),
       });
       const json = await res.json();
-      if (json.result) return;
+      if (json.result && json.result.status === "0x1") return;
     } catch {}
   }
   throw new Error("Transaction timeout — please check your wallet");
@@ -109,4 +110,11 @@ export async function depositUSDC(
     params: [{ from: walletAddress, to: contractAddress, data: `0xb6b55f25${amountHex}` }],
   });
   return txHash as string;
+}
+
+export function isUserRejection(err: any): boolean {
+  return err?.code === 4001 || 
+    err?.message?.toLowerCase().includes("rejected") ||
+    err?.message?.toLowerCase().includes("denied") ||
+    err?.message?.toLowerCase().includes("cancelled");
 }

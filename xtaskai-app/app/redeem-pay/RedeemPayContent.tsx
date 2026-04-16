@@ -3,7 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { parseUnits } from "viem";
-import { getFarcasterProvider, getAccounts, switchToBase, waitForTx, checkAllowance, approveUSDC, depositUSDC } from "../lib/farcaster-wallet";
+import {
+  getFarcasterProvider, getAccounts, switchToBase,
+  waitForTx, checkAllowance, approveUSDC, depositUSDC, isUserRejection
+} from "../lib/farcaster-wallet";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
@@ -45,8 +48,14 @@ export default function RedeemPayContent() {
       await switchToBase(providerRef.current);
       const txHash = await approveUSDC(providerRef.current, walletAddress, USDC_ADDRESS, CONTRACT_ADDRESS, amountInUnits);
       await waitForTx(txHash);
-      setNeedsApproval(false); setStatus("idle");
-    } catch (err: any) { setErrorMsg(err?.message || "Approval failed"); setStatus("error"); }
+      await new Promise(r => setTimeout(r, 3000));
+      const stillNeeds = await checkAllowance(walletAddress, CONTRACT_ADDRESS, USDC_ADDRESS, amountInUnits);
+      setNeedsApproval(stillNeeds);
+      setStatus("idle");
+    } catch (err: any) {
+      if (isUserRejection(err)) { setStatus("idle"); return; }
+      setErrorMsg(err?.message || "Approval failed"); setStatus("error");
+    }
   }
 
   async function handlePayFee() {
@@ -57,7 +66,10 @@ export default function RedeemPayContent() {
       const txHash = await depositUSDC(providerRef.current, walletAddress, CONTRACT_ADDRESS, amountInUnits);
       await waitForTx(txHash);
       await processClaim(txHash);
-    } catch (err: any) { setErrorMsg(err?.message || "Transaction failed"); setStatus("error"); }
+    } catch (err: any) {
+      if (isUserRejection(err)) { setStatus("idle"); return; }
+      setErrorMsg(err?.message || "Transaction failed"); setStatus("error");
+    }
   }
 
   async function processClaim(txHash: string) {
@@ -68,8 +80,10 @@ export default function RedeemPayContent() {
         body: JSON.stringify({ user_wallet: walletAddress, code_id: parseInt(code_id), code, tx_hash: txHash, reward_usdc, reward_xtp }),
       });
       const data = await res.json();
-      if (data.success) { setStatus("success"); setTimeout(() => { window.location.href = `https://xtaskai.com/base-mini-app/redeem.php?success=1&reward_usdc=${reward_usdc}&reward_xtp=${reward_xtp}`; }, 2000); }
-      else { setErrorMsg(data.error || "Failed"); setStatus("error"); }
+      if (data.success) {
+        setStatus("success");
+        setTimeout(() => { window.location.href = `https://xtaskai.com/base-mini-app/redeem.php?success=1&reward_usdc=${reward_usdc}&reward_xtp=${reward_xtp}`; }, 2000);
+      } else { setErrorMsg(data.error || "Failed"); setStatus("error"); }
     } catch { setErrorMsg("Failed to process claim"); setStatus("error"); }
   }
 

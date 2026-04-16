@@ -3,7 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { parseUnits } from "viem";
-import { getFarcasterProvider, getAccounts, switchToBase, waitForTx, checkAllowance, approveUSDC, depositUSDC } from "../lib/farcaster-wallet";
+import {
+  getFarcasterProvider, getAccounts, switchToBase,
+  waitForTx, checkAllowance, approveUSDC, depositUSDC, isUserRejection
+} from "../lib/farcaster-wallet";
 
 const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const CONTRACT_ADDRESS = "0x0f50aD6a61434CbE672Ec50009ED3EC0181731b0";
@@ -46,9 +49,12 @@ export default function BagClaimContent() {
       await switchToBase(providerRef.current);
       const txHash = await approveUSDC(providerRef.current, walletAddress, USDC_ADDRESS, CONTRACT_ADDRESS, amountInUnits);
       await waitForTx(txHash);
-      setNeedsApproval(false);
+      await new Promise(r => setTimeout(r, 3000));
+      const stillNeeds = await checkAllowance(walletAddress, CONTRACT_ADDRESS, USDC_ADDRESS, amountInUnits);
+      setNeedsApproval(stillNeeds);
       setStatus("idle");
     } catch (err: any) {
+      if (isUserRejection(err)) { setStatus("idle"); return; }
       setErrorMsg(err?.message || "Approval failed");
       setStatus("error");
     }
@@ -63,6 +69,7 @@ export default function BagClaimContent() {
       await waitForTx(txHash);
       await registerClaim(txHash);
     } catch (err: any) {
+      if (isUserRejection(err)) { setStatus("idle"); return; }
       setErrorMsg(err?.message || "Transaction failed");
       setStatus("error");
     }
@@ -135,7 +142,7 @@ export default function BagClaimContent() {
             {status === "depositing" ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Processing...</span> : `Pay $${fee} USDC & Claim Bag`}
           </button>
         )}
-        <button onClick={() => window.location.href = "https://xtaskai.com/base-mini-app/quests.php"} className="w-full mt-3 text-gray-500 text-sm py-2">Cancel</button>
+        <button onClick={() => window.location.href="https://xtaskai.com/base-mini-app/quests.php"} className="w-full mt-3 text-gray-500 text-sm py-2">Cancel</button>
       </div>
     </div>
   );
