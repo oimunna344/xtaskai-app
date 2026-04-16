@@ -1,19 +1,18 @@
 "use client";
-
 import { Suspense } from "react";
 import CheckinContent from "./CheckinContent";
 
-export default function CheckinPage() {
+function LoadingScreen() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading...</p>
-        </div>
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-12 h-12 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-400 text-sm">Loading...</p>
       </div>
-    }>
-      <CheckinContent />
-    </Suspense>
+    </div>
   );
+}
+
+export default function CheckinPage() {
+  return <Suspense fallback={<LoadingScreen />}><CheckinContent /></Suspense>;
 }
