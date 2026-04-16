@@ -62,10 +62,10 @@ export default function JobFeeContent() {
         const parsed = JSON.parse(decodeURIComponent(jobDataParam));
         setJobData(parsed);
       } catch {
-        setErrorMsg("Invalid job data format. Please go back and try again.");
+        setErrorMsg("Invalid job data format.");
       }
     } else {
-      setErrorMsg("No job data found. Please go back and fill the job form.");
+      setErrorMsg("No job data found.");
     }
   }, [searchParams]);
 
@@ -108,36 +108,15 @@ export default function JobFeeContent() {
     }
   }
 
-  async function switchToBase() {
-    try {
-      await providerRef.current.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x2105" }],
-      });
-    } catch (err: any) {
-      if (err.code === 4902) {
-        await providerRef.current.request({
-          method: "wallet_addEthereumChain",
-          params: [{
-            chainId: "0x2105",
-            chainName: "Base",
-            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-            rpcUrls: ["https://mainnet.base.org"],
-            blockExplorerUrls: ["https://basescan.org"],
-          }],
-        });
-      } else throw err;
-    }
-  }
+  // switchToBase ফাংশনটি এখানে দরকার নেই কারণ ফ্রেম সাধারণত Base-এই থাকে
+  // এবং এটি কল করলে এরর আসতে পারে।
 
   async function handleApprove() {
     if (!walletAddress || !providerRef.current) return;
     setStatus("approving");
     setErrorMsg("");
     try {
-      await switchToBase();
-      const publicClient = createPublicClient({ chain: base, transport: custom(providerRef.current) });
-
+      // switchToBase() বাদ দেওয়া হয়েছে
       const txHash = await providerRef.current.request({
         method: 'eth_sendTransaction',
         params: [{
@@ -148,10 +127,10 @@ export default function JobFeeContent() {
             functionName: "approve",
             args: [CONTRACT_ADDRESS as `0x${string}`, amountInUnits],
           }),
-          value: '0x0',
         }],
       });
 
+      const publicClient = createPublicClient({ chain: base, transport: custom(providerRef.current) });
       await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
       setNeedsApproval(false);
       setStatus("idle");
@@ -166,9 +145,7 @@ export default function JobFeeContent() {
     setStatus("depositing");
     setErrorMsg("");
     try {
-      await switchToBase();
-      const publicClient = createPublicClient({ chain: base, transport: custom(providerRef.current) });
-
+      // switchToBase() বাদ দেওয়া হয়েছে
       const txHash = await providerRef.current.request({
         method: 'eth_sendTransaction',
         params: [{
@@ -179,10 +156,10 @@ export default function JobFeeContent() {
             functionName: "deposit",
             args: [amountInUnits],
           }),
-          value: '0x0',
         }],
       });
 
+      const publicClient = createPublicClient({ chain: base, transport: custom(providerRef.current) });
       await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
       await registerJob(txHash as string);
     } catch (err: any) {
@@ -191,6 +168,7 @@ export default function JobFeeContent() {
     }
   }
 
+  // বাকি কোড (registerJob এবং return JSX) আগের মতোই থাকবে...
   async function registerJob(txHash: string) {
     if (!jobData) {
       setErrorMsg("No job data found");
