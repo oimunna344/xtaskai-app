@@ -10,6 +10,7 @@
     "iconUrl": "https://xtaskai.com/base-mini-app/assets/logo.png",
     "homeUrl": "https://xtaskai-app.vercel.app",
     "splashImageUrl": "https://xtaskai.com/base-mini-app/assets/logo.png",
-    "splashBackgroundColor": "#0a0a0a"
+    "splashBackgroundColor": "#0a0a0a",
+    "webhookUrl": "https://api.neynar.com/f/app/c01e56c5-487a-470f-a193-f2dc9"
   }
 }
